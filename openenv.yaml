@@ -1,0 +1,19 @@
+name: hackwatch
+version: "0.1.0"
+description: >
+  HackWatch — OpenEnv RL environment that trains a MONITOR agent to detect
+  reward-hacking by a WORKER agent on coding tasks. Ground truth comes from
+  planted hack labels; reward is fully deterministic (no LLM judge).
+entrypoint: "uvicorn server.app:app --host 0.0.0.0 --port 8000"
+action_schema: hackwatch.models.MonitorAction
+observation_schema: hackwatch.models.MonitorObservation
+state_schema: hackwatch.models.HackWatchState
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+tags:
+  - coding
+  - reward-hacking
+  - adversarial
+  - safety

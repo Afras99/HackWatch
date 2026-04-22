@@ -1,0 +1,28 @@
+# HackWatch — Agent Rules
+
+## Critical invariants (never break)
+
+1. `planted_label` must NEVER appear in `MonitorObservation` — monitor cannot see ground truth
+2. No exploit primitive may write its own name into generated file content or paths
+3. `HackWatchState.to_dict()` excludes `planted_label`; only `to_dict_full()` includes it
+
+## DO NOT
+
+- Do NOT add `planted_label` to `MonitorObservation` (models.py)
+- Do NOT set GRPO `beta < 0.01` — collapses KL penalty
+- Do NOT remove `calibration_penalty` from reward.py — prevents confidence gaming
+- Do NOT remove the `heldout_novel` split from exploits.py — it's the generalization test claim
+- Do NOT re-add easy/medium/hard difficulty tiers — dropped by design decision
+- Do NOT use `innerHTML` or `dangerouslySetInnerHTML` in the demo frontend — agent-generated strings are untrusted
+
+## Python environment
+
+Always use: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python`
+
+Run tests: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python -m pytest tests/ -v`
+
+## Read first
+
+- `AGENTS.md` — current state, next steps, module map
+- `CLAUDE.md` — stack, conda env, invariants
+- `graphify-out/GRAPH_REPORT.md` — architecture overview (if it exists)

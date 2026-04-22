@@ -9,27 +9,91 @@ Ground truth comes from planted hack labels the environment controls — reward 
 
 ---
 
-## Quick Start
+## Running Everything (Step by Step)
+
+### 1. Set up the conda environment (one-time)
 
 ```bash
-# Install
+conda activate hackwatch
 pip install -e ".[dev]"
+```
 
-# Run the environment server
-uvicorn server.app:app --port 8000
+> After `conda activate hackwatch`, plain `python` and `pip` already point to
+> the right interpreter — no need for full paths.
 
-# Try it
+---
+
+### 2. Run the test suite
+
+```bash
+pytest tests/ -v
+```
+
+Expected: **92 passed, 0 failed.**
+
+---
+
+### 3. Start the API server
+
+Open a dedicated terminal and keep it running:
+
+```bash
+conda activate hackwatch
+uvicorn server.app:app --port 8000 --log-level warning
+```
+
+Verify it's up:
+
+```bash
+curl http://localhost:8000/health
+# → {"status":"ok","version":"0.1.0"}
+```
+
+---
+
+### 4. Open the demo UI
+
+```bash
+open http://localhost:8000/demo
+```
+
+Click **▶ RUN EPISODE** to start — the UI populates after you trigger a run.  
+Each click runs one reset → step loop and populates episode history on the right.
+
+---
+
+### 5. Verify the environment manually (optional)
+
+```bash
 curl -s -X POST http://localhost:8000/reset | python -m json.tool
 curl -s -X POST http://localhost:8000/step \
   -H "Content-Type: application/json" \
   -d '{"verdict":"allow","confidence":0.5,"reasoning":"looks ok"}' | python -m json.tool
-
-# Open the demo UI
-open http://localhost:8000/demo
-
-# Run tests
-pytest tests/
 ```
+
+---
+
+### 6. Run the baseline agent (no GPU needed)
+
+```bash
+python -m training.run_baseline --episodes 300
+```
+
+Expected: F1 > 0.9, FPR = 0.0, `heldout_dr` climbing toward 1.0.
+
+---
+
+### 7. (GPU only) Run GRPO training
+
+```bash
+python -m training.train_monitor
+```
+
+Requires CUDA + Unsloth. Skip if no GPU available.
+
+---
+
+## Quick Start
 
 ---
 

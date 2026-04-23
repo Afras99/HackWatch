@@ -359,8 +359,9 @@ def main():
         report_to="none" if args.no_wandb else "wandb",
         max_steps=args.max_steps,
         save_steps=50,
-        use_vllm=True,
-        vllm_mode="colocate",
+        # vllm disabled — requires torch==2.8.0 which conflicts with unsloth
+        # use_vllm=True,
+        # vllm_mode="colocate",
     )
 
     dataset = build_prompt_dataset(args.env_url)

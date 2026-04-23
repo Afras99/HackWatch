@@ -27,7 +27,7 @@ training = [
     "datasets>=2.18.0",
     "wandb>=0.16.0",
     "peft>=0.10.0",
-    "transformers==4.56.1",
+    "transformers==4.55.4",
     "unsloth==2025.9.6",
     "vllm==0.10.2",
 ]

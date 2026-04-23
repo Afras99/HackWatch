@@ -343,9 +343,9 @@ def main():
 
     config = GRPOConfig(
         output_dir=args.output_dir,
-        per_device_train_batch_size=1,
-        gradient_accumulation_steps=4,
-        num_generations=8,
+        per_device_train_batch_size=4,   # A100 80GB can handle 4 at once
+        gradient_accumulation_steps=2,
+        num_generations=16,              # more rollouts per step = richer signal
         max_completion_length=512,
         max_prompt_length=1024,
         num_train_epochs=6,

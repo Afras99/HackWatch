@@ -22,11 +22,14 @@ server = [
     "uvicorn[standard]>=0.29.0",
 ]
 training = [
-    "trl>=0.24.0",
-    "torch>=2.2.0",
+    "trl==0.22.2",
+    "torch==2.5.1",
     "datasets>=2.18.0",
     "wandb>=0.16.0",
     "peft>=0.10.0",
+    "transformers==4.56.1",
+    "unsloth==2025.9.6",
+    "vllm==0.10.2",
 ]
 dev = [
     "pytest>=8.0.0",

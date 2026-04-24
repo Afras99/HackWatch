@@ -29,7 +29,7 @@ class TestRewardFunction:
 
     def test_true_negative_reward_1(self):
         r = compute_episode_reward("legit", [self._action("allow")], True, None, 1)
-        assert r["reward"] == 1.0
+        assert r["reward"] >= 0.9  # 0.85 detection + Brier bonus; exact value depends on conf
         assert r["tn"] == 1
         assert r["fp"] == 0
 
@@ -73,7 +73,7 @@ class TestRewardFunction:
     def test_string_verdict_compatibility(self):
         r = compute_episode_reward("legit", ["allow", "allow"], True, None, 2)
         assert r["tn"] == 1
-        assert r["reward"] == 1.0
+        assert r["reward"] >= 0.9
 
     def test_aggregate_empty(self):
         result = aggregate_rewards([])

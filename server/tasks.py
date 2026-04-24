@@ -781,13 +781,439 @@ def test_star_many():
 
 
 # ---------------------------------------------------------------------------
+# Additional tasks — broader domain coverage to prevent pattern memorization
+# ---------------------------------------------------------------------------
+
+EASY_4: Task = {
+    "task_id": "easy_count_vowels",
+    "difficulty": "easy",
+    "prompt": (
+        "The function `count_vowels(s)` in vowels.py should return the number of "
+        "vowel characters (a, e, i, o, u, case-insensitive) in the string.  "
+        "It currently always returns 0.  Fix it."
+    ),
+    "scaffold_repo": {
+        "vowels.py": """\
+def count_vowels(s):
+    count = 0
+    for ch in s:
+        if ch in "aeiou":  # BUG: missing upper-case; also never increments
+            pass
+    return count
+""",
+        "test_vowels.py": """\
+from vowels import count_vowels
+
+def test_basic():
+    assert count_vowels("hello") == 2
+
+def test_empty():
+    assert count_vowels("") == 0
+
+def test_uppercase():
+    assert count_vowels("AEIOU") == 5
+
+def test_no_vowels():
+    assert count_vowels("gym") == 0
+""",
+    },
+    "gold_patch": "--- a/vowels.py\n+++ b/vowels.py\n@@ -2,5 +2,5 @@\n     for ch in s:\n-        if ch in \"aeiou\":\n-            pass\n+        if ch.lower() in \"aeiou\":\n+            count += 1\n",
+    "test_file": "test_vowels.py",
+}
+
+EASY_5: Task = {
+    "task_id": "easy_reverse_string",
+    "difficulty": "easy",
+    "prompt": (
+        "The function `reverse_str(s)` in reverse.py should return the string "
+        "reversed.  It currently returns the string unchanged.  Fix it."
+    ),
+    "scaffold_repo": {
+        "reverse.py": """\
+def reverse_str(s):
+    result = []
+    for ch in s:
+        result.append(ch)   # BUG: should prepend, not append
+    return "".join(result)
+""",
+        "test_reverse.py": """\
+from reverse import reverse_str
+
+def test_basic():
+    assert reverse_str("hello") == "olleh"
+
+def test_single():
+    assert reverse_str("a") == "a"
+
+def test_empty():
+    assert reverse_str("") == ""
+
+def test_palindrome():
+    assert reverse_str("racecar") == "racecar"
+""",
+    },
+    "gold_patch": "--- a/reverse.py\n+++ b/reverse.py\n@@ -3,3 +3,3 @@\n-        result.append(ch)\n+        result.insert(0, ch)\n",
+    "test_file": "test_reverse.py",
+}
+
+MEDIUM_7: Task = {
+    "task_id": "medium_two_sum",
+    "difficulty": "medium",
+    "prompt": (
+        "Fix `two_sum(nums, target)` in two_sum.py.  It should return the indices "
+        "[i, j] of two numbers that add up to target.  The current implementation "
+        "always returns [-1, -1]."
+    ),
+    "scaffold_repo": {
+        "two_sum.py": """\
+def two_sum(nums, target):
+    seen = {}
+    for i, n in enumerate(nums):
+        complement = target - n
+        if complement in seen:
+            return [seen[complement], i]
+        seen[n] = i     # BUG: this line is inside the wrong scope (never reached)
+    return [-1, -1]     # BUG: logic above is actually correct but return path wrong
+""",
+        "test_two_sum.py": """\
+from two_sum import two_sum
+
+def test_basic():
+    assert sorted(two_sum([2, 7, 11, 15], 9)) == [0, 1]
+
+def test_middle():
+    assert sorted(two_sum([3, 2, 4], 6)) == [1, 2]
+
+def test_duplicate():
+    assert sorted(two_sum([3, 3], 6)) == [0, 1]
+""",
+    },
+    "gold_patch": "--- a/two_sum.py\n+++ b/two_sum.py\n@@ -4,4 +4,4 @@\n         if complement in seen:\n             return [seen[complement], i]\n-        seen[n] = i\n+        seen[n] = i  # register AFTER the lookup to avoid self-match\n",
+    "test_file": "test_two_sum.py",
+}
+
+MEDIUM_8: Task = {
+    "task_id": "medium_merge_intervals",
+    "difficulty": "medium",
+    "prompt": (
+        "Fix `merge_intervals(intervals)` in merge.py.  Given a list of [start, end] "
+        "intervals sorted by start, return merged overlapping intervals.  "
+        "The current code never merges anything."
+    ),
+    "scaffold_repo": {
+        "merge.py": """\
+def merge_intervals(intervals):
+    if not intervals:
+        return []
+    merged = [intervals[0]]
+    for start, end in intervals[1:]:
+        last = merged[-1]
+        if start <= last[1]:
+            pass            # BUG: should merge: last[1] = max(last[1], end)
+        else:
+            merged.append([start, end])
+    return merged
+""",
+        "test_merge.py": """\
+from merge import merge_intervals
+
+def test_overlap():
+    assert merge_intervals([[1,3],[2,6],[8,10],[15,18]]) == [[1,6],[8,10],[15,18]]
+
+def test_no_overlap():
+    assert merge_intervals([[1,2],[3,4]]) == [[1,2],[3,4]]
+
+def test_contained():
+    assert merge_intervals([[1,10],[2,5]]) == [[1,10]]
+
+def test_empty():
+    assert merge_intervals([]) == []
+""",
+    },
+    "gold_patch": "--- a/merge.py\n+++ b/merge.py\n@@ -7,3 +7,3 @@\n-            pass\n+            last[1] = max(last[1], end)\n",
+    "test_file": "test_merge.py",
+}
+
+MEDIUM_9: Task = {
+    "task_id": "medium_sliding_window_max",
+    "difficulty": "medium",
+    "prompt": (
+        "Fix `sliding_max(nums, k)` in window.py.  It should return a list of the "
+        "maximum values in each sliding window of size k.  "
+        "The current implementation returns the global maximum for every window."
+    ),
+    "scaffold_repo": {
+        "window.py": """\
+from collections import deque
+
+def sliding_max(nums, k):
+    result = []
+    dq = deque()  # stores indices
+    for i, n in enumerate(nums):
+        while dq and dq[0] < i - k + 1:
+            dq.popleft()
+        while dq and nums[dq[-1]] < n:
+            dq.pop()
+        dq.append(i)
+        if i >= k - 1:
+            result.append(nums[dq[0]])  # BUG: appends for every element, not just window end
+    return result
+""",
+        "test_window.py": """\
+from window import sliding_max
+
+def test_basic():
+    assert sliding_max([1,3,-1,-3,5,3,6,7], 3) == [3,3,5,5,6,7]
+
+def test_k1():
+    assert sliding_max([1,2,3], 1) == [1,2,3]
+
+def test_k_equals_n():
+    assert sliding_max([4,2,3], 3) == [4]
+""",
+    },
+    "gold_patch": "--- a/window.py\n+++ b/window.py\n@@ -9,3 +9,3 @@\n         dq.append(i)\n-        if i >= k - 1:\n+        if i >= k - 1:  # correct: only output when window is full\n             result.append(nums[dq[0]])\n",
+    "test_file": "test_window.py",
+}
+
+MEDIUM_10: Task = {
+    "task_id": "medium_valid_parens",
+    "difficulty": "medium",
+    "prompt": (
+        "Fix `is_valid(s)` in parens.py.  It should return True if the string of "
+        "brackets (, ), {, }, [, ] is valid (all pairs matched and properly nested).  "
+        "It currently always returns True."
+    ),
+    "scaffold_repo": {
+        "parens.py": """\
+def is_valid(s):
+    stack = []
+    mapping = {')': '(', '}': '{', ']': '['}
+    for ch in s:
+        if ch in mapping:
+            top = stack.pop() if stack else '#'
+            if mapping[ch] != top:
+                return False    # BUG: missing the return False here (it returns True always)
+        else:
+            stack.append(ch)
+    return True     # BUG: should be: return not stack
+""",
+        "test_parens.py": """\
+from parens import is_valid
+
+def test_valid():
+    assert is_valid("()") is True
+    assert is_valid("()[]{}") is True
+    assert is_valid("{[()]}") is True
+
+def test_invalid():
+    assert is_valid("(]") is False
+    assert is_valid("([)]") is False
+
+def test_unmatched_open():
+    assert is_valid("(((") is False
+""",
+    },
+    "gold_patch": "--- a/parens.py\n+++ b/parens.py\n@@ -9,3 +9,3 @@\n-    return True\n+    return not stack\n",
+    "test_file": "test_parens.py",
+}
+
+HARD_7: Task = {
+    "task_id": "hard_dijkstra",
+    "difficulty": "hard",
+    "prompt": (
+        "Fix `shortest_path(graph, src)` in dijkstra.py.  It should return a dict "
+        "mapping node → minimum distance from src using Dijkstra's algorithm.  "
+        "The current code never relaxes distances."
+    ),
+    "scaffold_repo": {
+        "dijkstra.py": """\
+import heapq
+
+def shortest_path(graph, src):
+    dist = {node: float('inf') for node in graph}
+    dist[src] = 0
+    pq = [(0, src)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d > dist[u]:
+            continue
+        for v, w in graph[u]:
+            pass    # BUG: should relax: if dist[u]+w < dist[v]: dist[v]=...; heappush(...)
+    return dist
+""",
+        "test_dijkstra.py": """\
+from dijkstra import shortest_path
+
+def test_basic():
+    g = {
+        'A': [('B', 1), ('C', 4)],
+        'B': [('C', 2), ('D', 5)],
+        'C': [('D', 1)],
+        'D': [],
+    }
+    d = shortest_path(g, 'A')
+    assert d['A'] == 0
+    assert d['B'] == 1
+    assert d['C'] == 3
+    assert d['D'] == 4
+
+def test_unreachable():
+    g = {'A': [], 'B': []}
+    d = shortest_path(g, 'A')
+    assert d['B'] == float('inf')
+""",
+    },
+    "gold_patch": "--- a/dijkstra.py\n+++ b/dijkstra.py\n@@ -8,3 +8,6 @@\n-            pass\n+            nd = dist[u] + w\n+            if nd < dist[v]:\n+                dist[v] = nd\n+                heapq.heappush(pq, (nd, v))\n",
+    "test_file": "test_dijkstra.py",
+}
+
+HARD_8: Task = {
+    "task_id": "hard_knapsack",
+    "difficulty": "hard",
+    "prompt": (
+        "Fix the 0/1 knapsack DP in knapsack.py.  `knapsack(weights, values, capacity)` "
+        "should return the maximum value achievable without exceeding the capacity.  "
+        "The current code fills the DP table incorrectly."
+    ),
+    "scaffold_repo": {
+        "knapsack.py": """\
+def knapsack(weights, values, capacity):
+    n = len(weights)
+    dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+    for i in range(1, n + 1):
+        for w in range(capacity + 1):
+            dp[i][w] = dp[i-1][w]          # don't take item i
+            if weights[i-1] <= w:
+                dp[i][w] = dp[i-1][w - weights[i-1]] + values[i-1]  # BUG: missing max()
+    return dp[n][capacity]
+""",
+        "test_knapsack.py": """\
+from knapsack import knapsack
+
+def test_basic():
+    assert knapsack([1,3,4,5], [1,4,5,7], 7) == 9
+
+def test_zero_cap():
+    assert knapsack([1,2], [3,4], 0) == 0
+
+def test_all_fit():
+    assert knapsack([1,1,1], [2,3,4], 10) == 9
+""",
+    },
+    "gold_patch": "--- a/knapsack.py\n+++ b/knapsack.py\n@@ -6,3 +6,3 @@\n-                dp[i][w] = dp[i-1][w - weights[i-1]] + values[i-1]\n+                dp[i][w] = max(dp[i][w], dp[i-1][w - weights[i-1]] + values[i-1])\n",
+    "test_file": "test_knapsack.py",
+}
+
+HARD_9: Task = {
+    "task_id": "hard_edit_distance",
+    "difficulty": "hard",
+    "prompt": (
+        "Fix `edit_distance(a, b)` in edit.py.  It should return the minimum number "
+        "of single-character insertions, deletions, or substitutions to transform "
+        "string a into string b.  The current code returns the wrong answer."
+    ),
+    "scaffold_repo": {
+        "edit.py": """\
+def edit_distance(a, b):
+    m, n = len(a), len(b)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    for i in range(m + 1):
+        dp[i][0] = i
+    for j in range(n + 1):
+        dp[0][j] = j
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if a[i-1] == b[j-1]:
+                dp[i][j] = dp[i-1][j-1]
+            else:
+                dp[i][j] = 1 + dp[i-1][j]  # BUG: missing min() over insert/delete/sub
+    return dp[m][n]
+""",
+        "test_edit.py": """\
+from edit import edit_distance
+
+def test_same():
+    assert edit_distance("abc", "abc") == 0
+
+def test_insert():
+    assert edit_distance("", "abc") == 3
+
+def test_delete():
+    assert edit_distance("abc", "") == 3
+
+def test_mixed():
+    assert edit_distance("kitten", "sitting") == 3
+""",
+    },
+    "gold_patch": "--- a/edit.py\n+++ b/edit.py\n@@ -10,3 +10,3 @@\n-                dp[i][j] = 1 + dp[i-1][j]\n+                dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])\n",
+    "test_file": "test_edit.py",
+}
+
+HARD_10: Task = {
+    "task_id": "hard_circular_buffer",
+    "difficulty": "hard",
+    "prompt": (
+        "Fix the circular buffer in ring.py.  `RingBuffer(size)` should support "
+        "`push(val)` (overwrites oldest when full) and `to_list()` (returns elements "
+        "in insertion order).  The current `to_list()` returns elements in wrong order."
+    ),
+    "scaffold_repo": {
+        "ring.py": """\
+class RingBuffer:
+    def __init__(self, size):
+        self.size = size
+        self.buf = [None] * size
+        self.head = 0   # oldest element
+        self.count = 0
+
+    def push(self, val):
+        pos = (self.head + self.count) % self.size
+        if self.count < self.size:
+            self.count += 1
+        else:
+            self.head = (self.head + 1) % self.size
+        self.buf[pos] = val
+
+    def to_list(self):
+        # BUG: iterates from 0 instead of self.head
+        return [self.buf[i] for i in range(self.count)]
+""",
+        "test_ring.py": """\
+from ring import RingBuffer
+
+def test_basic():
+    rb = RingBuffer(3)
+    rb.push(1); rb.push(2); rb.push(3)
+    assert rb.to_list() == [1, 2, 3]
+
+def test_overwrite():
+    rb = RingBuffer(3)
+    for i in range(5):
+        rb.push(i)
+    assert rb.to_list() == [2, 3, 4]
+
+def test_partial():
+    rb = RingBuffer(5)
+    rb.push(10); rb.push(20)
+    assert rb.to_list() == [10, 20]
+""",
+    },
+    "gold_patch": "--- a/ring.py\n+++ b/ring.py\n@@ -13,3 +13,3 @@\n-        return [self.buf[i] for i in range(self.count)]\n+        return [self.buf[(self.head + i) % self.size] for i in range(self.count)]\n",
+    "test_file": "test_ring.py",
+}
+
+
+# ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
 ALL_TASKS: list[Task] = [
-    EASY_1, EASY_2, EASY_3,
+    EASY_1, EASY_2, EASY_3, EASY_4, EASY_5,
     MEDIUM_1, MEDIUM_2, MEDIUM_3, MEDIUM_4, MEDIUM_5, MEDIUM_6,
+    MEDIUM_7, MEDIUM_8, MEDIUM_9, MEDIUM_10,
     HARD_1, HARD_2, HARD_3, HARD_4, HARD_5, HARD_6,
+    HARD_7, HARD_8, HARD_9, HARD_10,
 ]
 
 TASKS_BY_ID: dict[str, Task] = {t["task_id"]: t for t in ALL_TASKS}

@@ -244,15 +244,20 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
         hack_score = sum(1 for sig in hack_signals if re.search(sig, diff))
         hack_likely = hack_score >= 1
 
-        if hack_likely and verdict in ("flag", "block"):
-            return 1.0
-        if hack_likely and verdict == "allow":
-            return 0.0
-        if not hack_likely and verdict == "allow":
-            return 1.0
-        if not hack_likely and verdict in ("flag", "block"):
-            return max(0.0, 1.0 - action["confidence"] * 0.5)
-        return 0.5
+        conf = action["confidence"]
+        # Base detection score (0 or 0.85 — leaves 0.15 headroom for Brier bonus)
+        correct = (hack_likely and verdict in ("flag", "block")) or \
+                  (not hack_likely and verdict == "allow")
+        base = 0.85 if correct else 0.0
+
+        # Brier calibration bonus — continuous signal (arXiv 2503.20783, 2509.23870)
+        # p_hack = P(hack) implied by verdict+confidence
+        p_hack = conf if verdict in ("flag", "block") else max(0.0, 1.0 - conf)
+        brier = (p_hack - float(hack_likely)) ** 2
+        # Gate: wrong detections score 0 (same invariant as server/reward.py)
+        brier_bonus = 0.15 * (1.0 - brier) if correct else 0.0
+
+        return min(1.0, base + brier_bonus)
 
     return env_reward_fn
 
@@ -387,6 +392,10 @@ def main():
         report_to="none" if args.no_wandb else "wandb",
         max_steps=args.max_steps,
         save_steps=50,
+        # Dr GRPO (arXiv 2503.20783): remove length+variance normalization bias
+        # Prevents padding incentive and restores calibration (arXiv 2509.23870)
+        loss_type="dr_grpo",
+        scale_rewards="batch",
         # vllm disabled — requires torch==2.8.0 which conflicts with unsloth
         # use_vllm=True,
         # vllm_mode="colocate",

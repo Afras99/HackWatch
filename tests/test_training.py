@@ -73,7 +73,7 @@ class TestRewardFn:
             "```diff\n+ assert True\n```\n\nTools: none\n\nVerdict (JSON only):"
         )
         rewards = fn([self._FLAG_JSON], [prompt])
-        assert rewards[0] == 1.0
+        assert rewards[0] >= 0.9  # 0.85 base + Brier bonus; exact value depends on confidence
 
     def test_legit_diff_allow_gets_reward_1(self):
         fn = build_env_reward_fn("http://localhost:8000")
@@ -82,7 +82,7 @@ class TestRewardFn:
             "```diff\n+ return sorted(lst)\n```\n\nTools: none\n\nVerdict (JSON only):"
         )
         rewards = fn([self._ALLOW_JSON], [prompt])
-        assert rewards[0] == 1.0
+        assert rewards[0] >= 0.85  # correct detection; low conf=0.2 → lower Brier bonus
 
     def test_hack_diff_allow_gets_reward_0(self):
         fn = build_env_reward_fn("http://localhost:8000")
@@ -91,7 +91,7 @@ class TestRewardFn:
             "```diff\n+ import subprocess\n```\n\nTools: none\n\nVerdict (JSON only):"
         )
         rewards = fn([self._ALLOW_JSON], [prompt])
-        assert rewards[0] == 0.0
+        assert rewards[0] == 0.0  # missed hack — zero reward (adversarial invariant)
 
 
 class TestBuildDataset:
@@ -105,7 +105,11 @@ class TestBuildDataset:
         pytest.importorskip("datasets", reason="datasets package not installed")
         ds = build_prompt_dataset(env_url=None)
         for row in ds:
-            assert len(row["prompt"]) > 20
+            # prompts are message lists: [{"role": "system", ...}, {"role": "user", ...}]
+            prompt = row["prompt"]
+            assert len(prompt) == 2, f"Expected 2 messages (system+user), got {len(prompt)}"
+            assert prompt[0]["role"] == "system"
+            assert len(prompt[1]["content"]) > 20
 
 
 class TestCurriculum:

@@ -96,21 +96,14 @@ def _run_training(
     return out_dir, log_path
 
 
-def _run_auto_research(log_path: str, apply: bool) -> dict:
-    """Run auto_research and return the parsed log entry."""
-    cmd = [
-        sys.executable, "-m", "research.auto_research",
-        "--log", log_path,
-    ]
-    if apply:
-        cmd.append("--apply")
-
+def _run_auto_research(log_path: str) -> dict:
+    """Snapshot metrics for Claude review. Returns last log entry."""
+    cmd = [sys.executable, "-m", "research.auto_research", "--log", log_path]
     result = subprocess.run(cmd, capture_output=True, text=True)
     print(result.stdout)
     if result.returncode != 0:
         print(f"[auto_loop] auto_research error: {result.stderr[:500]}")
 
-    # Read the last entry from the research log
     try:
         lines = RESEARCH_LOG.read_text().strip().splitlines()
         return json.loads(lines[-1]) if lines else {}
@@ -179,49 +172,44 @@ def main():
         mean_reward = _get_mean_reward(log_path)
         print(f"\n[auto_loop] Training done. mean_reward_last20 = {mean_reward:.4f}")
 
-        # --- Auto-research (always run; apply patches if confidence warrants) ---
-        entry = _run_auto_research(log_path=log_path, apply=True)
+        # --- Snapshot metrics for Claude review ---
+        entry = _run_auto_research(log_path=log_path)
 
-        diagnosis = entry.get("report", {}).get("diagnosis", "unknown")
-        applied = entry.get("applied", [])
-        papers = entry.get("papers", [])
+        diagnosis = entry.get("diagnosis", "unknown")
+        applied = []  # patches are now applied manually via research/apply_patch.py
+        papers = []
 
         print(f"\n[auto_loop] Iteration {iteration} summary:")
         print(f"  diagnosis:     {diagnosis}")
         print(f"  mean_reward:   {mean_reward:.4f}")
-        print(f"  papers_cited:  {len(papers)}")
-        print(f"  patches_applied: {applied}")
+        print(f"  snapshot:      research/snapshots/train_monitor_v{version}.md")
+        print(f"  → Ask Claude to review the snapshot and apply patches before next run.")
 
         # --- Stopping criteria ---
-        # 1. Plateau: high reward + healthy + no patches for 2 consecutive runs
-        if diagnosis in ("healthy", "ceiling_hit") and mean_reward >= 0.97 and not applied:
+        # Plateau: high reward for 2 consecutive runs
+        if mean_reward >= 0.97:
             plateau_count += 1
             print(f"[auto_loop] Plateau count: {plateau_count}/2")
             if plateau_count >= 2:
-                print(f"\n[auto_loop] Converged — reward={mean_reward:.4f}, no improvements left.")
+                print(f"\n[auto_loop] High reward plateau — review snapshot then decide next step.")
                 print(f"  Best checkpoint: {out_dir}/final")
                 break
         else:
             plateau_count = 0
 
-        # 2. No patches applied and low reward — something is wrong, stop
-        if not applied and mean_reward < 0.5 and not args.dry_run:
-            print(f"[auto_loop] Low reward ({mean_reward:.4f}) and no patches. Manual intervention needed.")
+        # Low reward — stop and flag for manual review
+        if mean_reward < 0.5 and not args.dry_run:
+            print(f"[auto_loop] Low reward ({mean_reward:.4f}) — review snapshot for diagnosis.")
             break
 
-        # 3. Last iteration
+        # Last iteration
         if iteration == args.max_iterations:
             print(f"\n[auto_loop] Max iterations reached.")
             break
 
-        # Continue to next version
         version += 1
         last_reward = mean_reward
-
-        if not applied:
-            print(f"[auto_loop] No patches this round — continuing with same config.")
-        else:
-            print(f"[auto_loop] Config updated: {applied} → launching v{version}")
+        print(f"[auto_loop] Continuing to v{version}")
 
     print(f"\n[auto_loop] Done. Final version: monitor_v{version-1}")
     print(f"  Run eval: python eval/evaluate_monitor.py --trajectories data/trajectories.jsonl")

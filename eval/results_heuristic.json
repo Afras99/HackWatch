@@ -1,4 +1,4 @@
-{
+al{
   "tag": "heuristic_baseline",
   "model": "Qwen/Qwen2.5-3B-Instruct",
   "n_trajectories": 150,

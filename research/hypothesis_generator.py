@@ -69,6 +69,27 @@ PROPOSALS: dict[str, list[Proposal]] = {
             ),
         ),
         Proposal(
+            id="dynamic_sampling",
+            title="DAPO Dynamic Sampling (rescue zero-std groups)",
+            description=(
+                "When heuristic scorer labels all 8 completions identically, "
+                "reward std=0 → advantage=0 → zero gradient. DAPO §3.2 rescues this "
+                "by resampling degenerate groups. HackWatch implements it by injecting "
+                "small Gaussian noise (σ=0.005) into zero-advantage groups inside "
+                "DynamicSamplingGRPOTrainer._generate_and_score_completions(). "
+                "Already wired into training/train_monitor.py."
+            ),
+            source="arXiv 2503.14476 DAPO §3.2 (Dynamic Sampling)",
+            guardrails_safe=True,
+            confidence=0.90,
+            config_patch=None,
+            code_change=(
+                "training/dynamic_grpo.py: DynamicSamplingGRPOTrainer subclass "
+                "overrides _generate_and_score_completions to inject noise into "
+                "zero-advantage groups. Already active in training/train_monitor.py."
+            ),
+        ),
+        Proposal(
             id="curriculum_ucb",
             title="Curriculum sampling via UCB over exploit primitives",
             description=(

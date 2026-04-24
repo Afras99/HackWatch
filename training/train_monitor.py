@@ -501,7 +501,8 @@ def main():
 
     model, tok = load_model(args.model)
 
-    from trl import GRPOConfig, GRPOTrainer  # type: ignore[import]
+    from trl import GRPOConfig  # type: ignore[import]
+    from training.dynamic_grpo import DynamicSamplingGRPOTrainer
 
     config = GRPOConfig(
         output_dir=args.output_dir,
@@ -511,7 +512,7 @@ def main():
         max_completion_length=256,       # monitor JSON is short; 256 is plenty
         max_prompt_length=1024,
         num_train_epochs=8,              # more epochs; UCB dataset grows over runs
-        beta=0.04,
+        beta=0.01,                       # reduced from 0.04: less KL penalty near ceiling
         learning_rate=5e-6,
         warmup_ratio=0.1,
         max_grad_norm=0.5,
@@ -523,23 +524,23 @@ def main():
         max_steps=args.max_steps,
         save_steps=50,
         # Dr GRPO (arXiv 2503.20783): remove length+variance normalization bias.
-        # Prevents padding incentive and restores calibration (arXiv 2509.23870).
         loss_type='dr_grpo',
-        scale_rewards='batch',
-        # DAPO clip_higher (arXiv 2503.14476): asymmetric clipping promotes
-        # diversity and avoids entropy collapse on monotone batches.
-        # epsilon=0.2 (lower clip), epsilon_high=0.28 (upper clip — more room to
-        # increase probability of correct low-confidence outputs).
+        scale_rewards=False,             # per-sample (not batch) — avoids re-introducing std bias
+        # GSPO sequence-level importance sampling (arXiv 2505.01301)
+        importance_sampling_level='sequence',
+        # DAPO overlong penalty: mask gradients from truncated completions
+        mask_truncated_completions=True,
+        # DAPO clip_higher (arXiv 2503.14476): asymmetric clipping
         epsilon=0.2,
         epsilon_high=0.28,
-        # Slightly elevated temperature for generation diversity (DRA-GRPO §3).
+        # Slightly elevated temperature for generation diversity (DRA-GRPO §3)
         temperature=1.1,
     )
 
     dataset = build_prompt_dataset(args.env_url)
     reward_fn = build_env_reward_fn(args.env_url)
 
-    trainer = GRPOTrainer(
+    trainer = DynamicSamplingGRPOTrainer(
         model=model,
         tokenizer=tok,
         args=config,

@@ -461,7 +461,7 @@ def main():
     parser.add_argument("--env-url",   default="http://localhost:8000")
     parser.add_argument("--model",     default="Qwen/Qwen2.5-3B-Instruct")
     parser.add_argument("--output-dir",default="./runs/monitor_v1")
-    parser.add_argument("--max-steps", type=int, default=200)
+    parser.add_argument("--max-steps", type=int, default=400)
     parser.add_argument("--no-wandb",  action="store_true")
     parser.add_argument("--dry-run",   action="store_true", help="Skip model load; verify pipeline only")
     args = parser.parse_args()
@@ -481,12 +481,12 @@ def main():
 
     config = GRPOConfig(
         output_dir=args.output_dir,
-        per_device_train_batch_size=8,   # V100 32GB: keep batch == num_generations
+        per_device_train_batch_size=8,   # must equal num_generations for GRPO
         gradient_accumulation_steps=2,
-        num_generations=8,               # 8 rollouts/step for within-batch diversity
+        num_generations=8,               # 8 rollouts/step; balanced with batch size
         max_completion_length=256,       # monitor JSON is short; 256 is plenty
         max_prompt_length=1024,
-        num_train_epochs=6,
+        num_train_epochs=8,              # more epochs; UCB dataset grows over runs
         beta=0.04,
         learning_rate=5e-6,
         warmup_ratio=0.1,
@@ -498,13 +498,18 @@ def main():
         report_to="none" if args.no_wandb else "wandb",
         max_steps=args.max_steps,
         save_steps=50,
-        # Dr GRPO (arXiv 2503.20783): remove length+variance normalization bias
-        # Prevents padding incentive and restores calibration (arXiv 2509.23870)
+        # Dr GRPO (arXiv 2503.20783): remove length+variance normalization bias.
+        # Prevents padding incentive and restores calibration (arXiv 2509.23870).
         loss_type="dr_grpo",
         scale_rewards="batch",
-        # vllm disabled — requires torch==2.8.0 which conflicts with unsloth
-        # use_vllm=True,
-        # vllm_mode="colocate",
+        # DAPO clip_higher (arXiv 2503.14476): asymmetric clipping promotes
+        # diversity and avoids entropy collapse on monotone batches.
+        # epsilon=0.2 (lower clip), epsilon_high=0.28 (upper clip — more room to
+        # increase probability of correct low-confidence outputs).
+        epsilon=0.2,
+        epsilon_high=0.28,
+        # Slightly elevated temperature for generation diversity (DRA-GRPO §3).
+        temperature=1.1,
     )
 
     dataset = build_prompt_dataset(args.env_url)

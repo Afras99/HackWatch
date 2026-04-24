@@ -1,9 +1,10 @@
 """
 Auto-research orchestrator — runs the full Karpathy-style loop:
-  1. Analyze current training run metrics
+  1. Analyze current training run metrics (experiment_analyzer.py)
   2. Diagnose the issue
-  3. Generate paper-backed hypotheses
-  4. Print/apply safe proposals
+  3. Search paper database for relevant work (paper_scraper.py)
+  4. Generate paper-backed hypotheses (hypothesis_generator.py)
+  5. Print/apply safe proposals
 
 Usage:
   # Analyze + propose (dry run, no changes):
@@ -29,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from research.experiment_analyzer import parse_log, diagnose, fetch_wandb
 from research.hypothesis_generator import generate, PROPOSALS
+from research.paper_scraper import rank as rank_papers, summarize_for_diagnosis
 
 
 TRAIN_SCRIPT = Path("training/train_monitor.py")
@@ -86,8 +88,16 @@ def run_once(log_path: str, wandb_run: str | None, apply: bool) -> dict:
     for k, v in report.items():
         print(f"   {k}: {v}")
 
-    # Step 3 — generate proposals
+    # Step 3 — literature search
     diagnosis = report["diagnosis"]
+    papers = rank_papers(diagnosis, top_k=4)
+    print(f"\n📚 Relevant papers for '{diagnosis}':")
+    for paper in papers:
+        impl = "✅" if paper["implemented"] else "📌"
+        print(f"   {impl} arXiv:{paper['arxiv_id']} — {paper['title'][:70]}")
+        print(f"      ↳ {paper['hackwatch_takeaway'][:100]}")
+
+    # Step 4 — generate proposals
     proposals = generate(diagnosis)
 
     print(f"\n💡 Proposals for '{diagnosis}':")
@@ -99,7 +109,7 @@ def run_once(log_path: str, wandb_run: str | None, apply: bool) -> dict:
         if p.get("code_change"):
             print(f"       Code: {p['code_change'][:120]}...")
 
-    # Step 4 — apply safe proposals
+    # Step 5 — apply safe proposals
     applied = []
     if apply:
         print(f"\n🔧 Applying GUARDRAILS-safe proposals...")
@@ -115,12 +125,13 @@ def run_once(log_path: str, wandb_run: str | None, apply: bool) -> dict:
         else:
             print("  (no safe config patches to apply)")
 
-    # Step 5 — log
+    # Step 6 — log
     entry = {
         "timestamp": time.time(),
         "log_path": log_path,
         "wandb_run": wandb_run,
         "report": report,
+        "papers": [p["arxiv_id"] for p in papers],
         "proposals": [p["id"] for p in proposals],
         "applied": applied,
     }

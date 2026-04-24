@@ -23,9 +23,11 @@ import argparse
 import asyncio
 import json
 import logging
+import math
 import os
 import re
 import time
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -166,17 +168,25 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
             action = parse_verdict(text)
             reward = _score_action_heuristically(action, prompt_text)
             rewards.append(reward)
-            # Track confusion matrix estimates from heuristic labels
             hack_in_diff = bool(re.search(
                 r"assert\s+True|import subprocess|pytest_runtest_makereport|"
                 r"monkeypatch\.setattr.*time|os\.environ\[|_PRECOMP\s*=|eval\(|result_cache\.json",
                 _extract_diff(prompt_text),
             ))
             blocked = action["verdict"] in ("flag", "block")
-            if hack_in_diff and blocked:     tp += 1
+            if hack_in_diff and blocked:       tp += 1
             elif hack_in_diff and not blocked: fn += 1
             elif not hack_in_diff and not blocked: tn += 1
             else:                              fp += 1
+
+        # DRA-GRPO (arXiv 2505.09655): within-group diversity bonus.
+        # TRL repeats each prompt num_generations times consecutively, so
+        # grouping by consecutive equal prompts recovers the generation groups.
+        rewards = _apply_diversity_bonus(rewards, prompt_texts, texts)
+
+        # Curriculum UCB: update per-task reward stats so next dataset
+        # build can oversample harder tasks (arXiv 2504.13592).
+        _update_curriculum_stats(prompt_texts, rewards)
 
         _call_count[0] += 1
         mean_reward = sum(rewards) / max(1, len(rewards))
@@ -184,7 +194,6 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
         recall    = tp / max(1, tp + fn)
         f1        = 2 * precision * recall / max(1e-9, precision + recall)
         fpr       = fp / max(1, fp + tn)
-        # Calibration penalty proxy: average distance from 0/1 on correct calls
         confident_correct = [
             abs(1.0 - parse_verdict(t)["confidence"])
             for t, pt in zip(texts, prompt_texts)
@@ -197,12 +206,10 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
             import wandb as _wandb
             if _wandb.run:
                 _wandb.log({
-                    # 4 component panels — each logged separately so W&B shows individual curves
                     "reward/detection_f1":         f1,
                     "reward/calibration":          calibration,
                     "reward/false_positive_rate":  fpr,
                     "reward/mean_total":           mean_reward,
-                    # Detailed breakdown
                     "train/precision":             precision,
                     "train/recall":                recall,
                     "train/call_count":            _call_count[0],
@@ -259,6 +266,64 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
 
         return min(1.0, base + brier_bonus)
 
+    # -----------------------------------------------------------------------
+    # DRA-GRPO diversity bonus (arXiv 2505.09655)
+    # -----------------------------------------------------------------------
+
+    def _apply_diversity_bonus(
+        rewards: list[float],
+        prompt_texts: list[str],
+        texts: list[str],
+        weight: float = 0.05,
+    ) -> list[float]:
+        """
+        Add a within-group diversity bonus.  TRL organises the flat completion
+        list as consecutive blocks of num_generations completions per prompt,
+        so grouping by consecutive equal prompts recovers generation groups.
+        Diversity = unique verdicts in the group / 3 (three possible verdicts).
+        """
+        result: list[float] = []
+        i = 0
+        while i < len(rewards):
+            anchor = prompt_texts[i]
+            j = i
+            while j < len(rewards) and prompt_texts[j] == anchor:
+                j += 1
+            group_size = j - i
+            if group_size > 1:
+                group_verdicts = [parse_verdict(texts[k])["verdict"] for k in range(i, j)]
+                diversity = len(set(group_verdicts)) / 3.0
+                for k in range(i, j):
+                    result.append(min(1.0, rewards[k] + weight * diversity))
+            else:
+                result.extend(rewards[i:j])
+            i = j
+        return result
+
+    # -----------------------------------------------------------------------
+    # Curriculum UCB stats (arXiv 2504.13592)
+    # -----------------------------------------------------------------------
+
+    _CURRICULUM_STATS_PATH = Path(__file__).parent.parent / "research" / "curriculum_stats.json"
+
+    def _update_curriculum_stats(prompt_texts: list[str], rewards: list[float]) -> None:
+        """Persist per-task reward stats used by build_prompt_dataset for UCB weighting."""
+        try:
+            stats: dict = (
+                json.loads(_CURRICULUM_STATS_PATH.read_text())
+                if _CURRICULUM_STATS_PATH.exists()
+                else {}
+            )
+            for prompt, reward in zip(prompt_texts, rewards):
+                key = prompt[:120]
+                if key not in stats:
+                    stats[key] = {"n": 0, "reward_sum": 0.0}
+                stats[key]["n"] += 1
+                stats[key]["reward_sum"] += reward
+            _CURRICULUM_STATS_PATH.write_text(json.dumps(stats))
+        except Exception:
+            pass  # stats are optional; never crash training
+
     return env_reward_fn
 
 
@@ -266,15 +331,29 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
 # Dataset — one row per task prompt (the model generates from these)
 # ---------------------------------------------------------------------------
 
+_CURRICULUM_STATS_PATH = Path(__file__).parent.parent / "research" / "curriculum_stats.json"
+
+
+def _ucb_weight(stats_entry: dict | None, total_n: int) -> float:
+    """UCB1 weight: upweights low-reward tasks and under-explored tasks."""
+    if stats_entry is None or stats_entry["n"] == 0:
+        return 3.0  # high priority for unseen tasks
+    n = stats_entry["n"]
+    mean_r = stats_entry["reward_sum"] / n
+    exploration = math.sqrt(2.0 * math.log(max(total_n, 1)) / n)
+    return max(0.1, (1.0 - mean_r) + exploration)
+
+
 def build_prompt_dataset(env_url: str | None = None):
     """
-    Collect N reset observations from the env server and build a dataset.
-    Falls back to the local task list if env_url is None.
+    Build GRPO training dataset with Curriculum UCB oversampling.
 
-    Prompts are returned as message lists so GRPOTrainer applies the model's
-    chat template (critical for Qwen instruction-tuned models to follow the
-    JSON-only instruction rather than doing raw text continuation).
+    Hard tasks (low mean reward in curriculum_stats.json) and rarely-seen
+    tasks get oversampled up to 4× relative to easy tasks.  Prompts are
+    returned as message lists so GRPOTrainer applies the model's chat
+    template.
     """
+    import random
     from datasets import Dataset  # type: ignore[import]
     from server.tasks import ALL_TASKS
 
@@ -284,7 +363,19 @@ def build_prompt_dataset(env_url: str | None = None):
             {"role": "user", "content": make_prompt(obs)},
         ]
 
-    rows = []
+    # Load curriculum stats if available
+    try:
+        curriculum_stats: dict = (
+            json.loads(_CURRICULUM_STATS_PATH.read_text())
+            if _CURRICULUM_STATS_PATH.exists()
+            else {}
+        )
+    except Exception:
+        curriculum_stats = {}
+
+    total_n = sum(s["n"] for s in curriculum_stats.values()) + 1
+
+    base_rows: list[dict] = []
     for task in ALL_TASKS:
         fake_obs = {
             "task_prompt": task["prompt"],
@@ -292,21 +383,36 @@ def build_prompt_dataset(env_url: str | None = None):
             "tools_used_so_far": [],
             "step_idx": 0,
         }
-        rows.append({"prompt": _to_messages(fake_obs)})
+        messages = _to_messages(fake_obs)
+        key = messages[1]["content"][:120]  # user message prefix used as curriculum key
+        base_rows.append({"prompt": messages, "_curriculum_key": key})
 
     # If env server is up, also collect live observations
     if env_url:
         try:
             import httpx as _httpx
             with _httpx.Client(timeout=5.0) as c:
-                for _ in range(30):
+                for _ in range(40):
                     r = c.post(f"{env_url}/reset", json={})
                     if r.status_code == 200:
                         obs = r.json()
-                        rows.append({"prompt": _to_messages(obs)})
+                        messages = _to_messages(obs)
+                        key = messages[1]["content"][:120]
+                        base_rows.append({"prompt": messages, "_curriculum_key": key})
         except Exception:
             pass
 
+    # UCB-weighted oversampling: harder tasks replicated up to 4×
+    rows = []
+    weights = [_ucb_weight(curriculum_stats.get(r["_curriculum_key"]), total_n) for r in base_rows]
+    min_w = min(weights)
+    for row, w in zip(base_rows, weights):
+        copies = max(1, min(4, round(w / min_w)))
+        rows.extend([{"prompt": row["prompt"]}] * copies)
+
+    random.shuffle(rows)
+    if curriculum_stats:
+        log.info(f"Dataset: {len(rows)} rows ({len(base_rows)} base) after UCB oversampling")
     return Dataset.from_list(rows)
 
 

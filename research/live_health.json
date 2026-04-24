@@ -1,0 +1,14 @@
+{
+  "summary": {
+    "steps": 30,
+    "last_step_reward": 1.0,
+    "mean_reward_last20": 0.9999,
+    "last_kl": 0.010795,
+    "last_clipped_ratio": 0.0,
+    "last_frac_zero_std": 1.0
+  },
+  "alerts": [
+    "CEILING: frac_zero_std\u22481.0 and reward\u22481.0 for 20+ steps. Model has mastered heuristic reward. Next run needs finer reward or curriculum."
+  ],
+  "timestamp": 1777016732.7712102
+}

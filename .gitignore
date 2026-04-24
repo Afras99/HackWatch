@@ -212,5 +212,11 @@ graphify-out/
 # Training run outputs
 runs/
 
+# Unsloth compiled CUDA kernel cache (machine-specific)
+unsloth_compiled_cache/
+
+# W&B run logs
+wandb/
+
 # Claude Code worktrees (ephemeral, not source)
 .claude/worktrees/

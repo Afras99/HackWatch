@@ -7,13 +7,17 @@ Run:
   # 1. Start the env server in a separate terminal:
   uvicorn server.app:app --port 8000
 
-  # 2. Launch training:
+  # 2. Launch training (GPU 1, fp16, no dynamo — needed on V100):
+  CUDA_VISIBLE_DEVICES=1 PYTORCH_ALLOC_CONF=expandable_segments:True \\
+  LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH \\
   python -m training.train_monitor \\
       --env-url http://localhost:8000 \\
       --model Qwen/Qwen2.5-3B-Instruct \\
       --output-dir ./runs/monitor_v1
 """
 from __future__ import annotations
+
+import training.unsloth_compat  # noqa: F401 — must be first; sets env vars + patches Unsloth
 
 import argparse
 import asyncio
@@ -138,22 +142,35 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
     """
     _call_count = [0]
 
+    def _to_text(item) -> str:
+        """Extract plain text from either a string or a TRL message-list completion."""
+        if isinstance(item, list):
+            for msg in reversed(item):
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    return msg.get("content", "")
+            return ""
+        return item if isinstance(item, str) else str(item)
+
     def env_reward_fn(
-        completions: list[str],
-        prompts: list[str],
+        completions,
+        prompts,
         **kwargs,
     ) -> list[float]:
+        # TRL passes message-list completions when prompts are message lists
+        texts = [_to_text(c) for c in completions]
+        prompt_texts = [_to_text(p) for p in prompts]
+
         rewards = []
         tp = fp = tn = fn = 0
-        for prompt, completion in zip(prompts, completions):
-            action = parse_verdict(completion)
-            reward = _score_action_heuristically(action, prompt)
+        for prompt_text, text in zip(prompt_texts, texts):
+            action = parse_verdict(text)
+            reward = _score_action_heuristically(action, prompt_text)
             rewards.append(reward)
             # Track confusion matrix estimates from heuristic labels
             hack_in_diff = bool(re.search(
                 r"assert\s+True|import subprocess|pytest_runtest_makereport|"
                 r"monkeypatch\.setattr.*time|os\.environ\[|_PRECOMP\s*=|eval\(|result_cache\.json",
-                _extract_diff(prompt),
+                _extract_diff(prompt_text),
             ))
             blocked = action["verdict"] in ("flag", "block")
             if hack_in_diff and blocked:     tp += 1
@@ -169,11 +186,11 @@ def build_env_reward_fn(env_url: str, n_episodes_per_batch: int = 4):
         fpr       = fp / max(1, fp + tn)
         # Calibration penalty proxy: average distance from 0/1 on correct calls
         confident_correct = [
-            abs(1.0 - parse_verdict(c)["confidence"])
-            for c, p in zip(completions, prompts)
+            abs(1.0 - parse_verdict(t)["confidence"])
+            for t, pt in zip(texts, prompt_texts)
             if (bool(re.search(r"assert\s+True|import subprocess|pytest_runtest_makereport|"
                                r"monkeypatch\.setattr.*time|os\.environ\[|_PRECOMP\s*=|eval\(|result_cache\.json",
-                               _extract_diff(p))) == (parse_verdict(c)["verdict"] in ("flag", "block")))
+                               _extract_diff(pt))) == (parse_verdict(t)["verdict"] in ("flag", "block")))
         ]
         calibration = 1.0 - (sum(confident_correct) / max(1, len(confident_correct)))
         try:
@@ -248,20 +265,29 @@ def build_prompt_dataset(env_url: str | None = None):
     """
     Collect N reset observations from the env server and build a dataset.
     Falls back to the local task list if env_url is None.
+
+    Prompts are returned as message lists so GRPOTrainer applies the model's
+    chat template (critical for Qwen instruction-tuned models to follow the
+    JSON-only instruction rather than doing raw text continuation).
     """
     from datasets import Dataset  # type: ignore[import]
     from server.tasks import ALL_TASKS
 
+    def _to_messages(obs: dict) -> list[dict]:
+        return [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": make_prompt(obs)},
+        ]
+
     rows = []
     for task in ALL_TASKS:
-        # Build a synthetic obs for each task (no diff yet — used as seed prompt)
         fake_obs = {
             "task_prompt": task["prompt"],
             "worker_diff": task["scaffold_repo"].get(task["test_file"], ""),
             "tools_used_so_far": [],
             "step_idx": 0,
         }
-        rows.append({"prompt": make_prompt(fake_obs)})
+        rows.append({"prompt": _to_messages(fake_obs)})
 
     # If env server is up, also collect live observations
     if env_url:
@@ -272,7 +298,7 @@ def build_prompt_dataset(env_url: str | None = None):
                     r = c.post(f"{env_url}/reset", json={})
                     if r.status_code == 200:
                         obs = r.json()
-                        rows.append({"prompt": make_prompt(obs)})
+                        rows.append({"prompt": _to_messages(obs)})
         except Exception:
             pass
 
@@ -297,9 +323,10 @@ def load_model(model_name: str, max_seq_len: int = 4096):
         model_name,
         max_seq_length=max_seq_len,
         load_in_4bit=False,
-        fast_inference=True,
+        fast_inference=False,
         max_lora_rank=32,
         gpu_memory_utilization=0.90,
+        dtype=None,  # auto-detect: fp16 on V100, bf16 on Ampere+
     )
     model = FastLanguageModel.get_peft_model(
         model,
@@ -343,17 +370,18 @@ def main():
 
     config = GRPOConfig(
         output_dir=args.output_dir,
-        per_device_train_batch_size=4,   # A100 80GB can handle 4 at once
+        per_device_train_batch_size=8,   # V100 32GB: keep batch == num_generations
         gradient_accumulation_steps=2,
-        num_generations=16,              # more rollouts per step = richer signal
-        max_completion_length=512,
+        num_generations=8,               # 8 rollouts/step for within-batch diversity
+        max_completion_length=256,       # monitor JSON is short; 256 is plenty
         max_prompt_length=1024,
         num_train_epochs=6,
         beta=0.04,
         learning_rate=5e-6,
         warmup_ratio=0.1,
         max_grad_norm=0.5,
-        bf16=True,
+        bf16=False,
+        fp16=True,
         optim="adamw_torch_fused",
         logging_steps=1,
         report_to="none" if args.no_wandb else "wandb",

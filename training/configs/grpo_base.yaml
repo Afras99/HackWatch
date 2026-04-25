@@ -15,18 +15,26 @@ lora:
 
 grpo:
   output_dir: "./runs/monitor_v1"
-  per_device_train_batch_size: 1
-  gradient_accumulation_steps: 8
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 2
   num_generations: 8
   max_completion_length: 256
-  max_prompt_length: 2048
-  beta: 0.04                  # KL penalty — do NOT set below 0.01 (mode collapse risk)
-  learning_rate: 1.0e-6
+  max_prompt_length: 1024
+  beta: 0.051                 # KL penalty — do NOT set below 0.01 (mode collapse risk)
+  learning_rate: 1.05e-5      # Optuna best (gpu trial #1)
+  warmup_ratio: 0.1
   max_grad_norm: 0.5
   logging_steps: 1
   report_to: "wandb"
-  num_train_epochs: 1
-  warmup_steps: 10
+  num_train_epochs: 2         # Optuna best — 8 caused prompt memorisation
+  temperature: 1.012          # Optuna best
+  num_iterations: 1           # Optuna best — 2 caused alternating ECG bounce
+  loss_type: "dr_grpo"
+  scale_rewards: false
+  importance_sampling_level: "sequence"
+  mask_truncated_completions: true
+  epsilon: 0.2
+  epsilon_high: 0.28
   dynamic_sampling_noise: 0.005  # σ for DAPO noise injection on zero-std groups; set 0.0 to disable
 
 env:

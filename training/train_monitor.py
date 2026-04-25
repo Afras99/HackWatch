@@ -729,12 +729,12 @@ class MonitorTrainer:
         no_wandb: bool = False,
         dry_run: bool = False,
         # HPO-injectable training hyperparams
-        learning_rate: float = 5e-6,
-        beta: float = 0.04,
-        temperature: float = 1.1,
-        num_iterations: int = 2,
-        num_train_epochs: int = 8,
-        num_generations: int = 8,
+        learning_rate: float | None = None,
+        beta: float | None = None,
+        temperature: float | None = None,
+        num_iterations: int | None = None,
+        num_train_epochs: int | None = None,
+        num_generations: int | None = None,
     ) -> None:
         self.env_url = env_url
         self.model_name = model_name
@@ -742,12 +742,14 @@ class MonitorTrainer:
         self.max_steps = max_steps
         self.no_wandb = no_wandb
         self.dry_run = dry_run
+        # None means "use yaml default" — only set by Optuna to override
         self.learning_rate = learning_rate
         self.beta = beta
         self.temperature = temperature
         self.num_iterations = num_iterations
         self.num_train_epochs = num_train_epochs
         self.num_generations = num_generations
+
 
     # ------------------------------------------------------------------
     # Step 1 — build the training prompt dataset
@@ -798,36 +800,45 @@ class MonitorTrainer:
             dataset: Prompt dataset from ``_build_dataset()``.
             reward_fn: Reward callable from ``_build_reward_fn()``.
         """
+        import yaml  # type: ignore[import]
         from trl import GRPOConfig  # type: ignore[import]
         from training.dynamic_grpo import DynamicSamplingGRPOTrainer
 
+        _cfg_path = Path(__file__).parent / "configs" / "grpo_base.yaml"
+        _cfg: dict = yaml.safe_load(_cfg_path.read_text()).get("grpo", {})
+
+        # self.* attrs from __init__ (set by Optuna or CLI) override yaml values.
+        # All other GRPOConfig fields come from grpo_base.yaml — edit that file,
+        # not this function, to change training defaults.
         config = GRPOConfig(
             output_dir=self.output_dir,
-            per_device_train_batch_size=8,
-            gradient_accumulation_steps=2,
-            num_generations=self.num_generations,
-            max_completion_length=256,
-            max_prompt_length=1024,
-            num_train_epochs=self.num_train_epochs,
-            beta=self.beta,
-            learning_rate=self.learning_rate,
-            warmup_ratio=0.1,
-            max_grad_norm=0.5,
+            max_steps=self.max_steps,
+            report_to="none" if self.no_wandb else _cfg.get("report_to", "wandb"),
+            save_steps=50,
             bf16=False,
             fp16=True,
             optim="adamw_torch_fused",
-            logging_steps=1,
-            report_to="none" if self.no_wandb else "wandb",
-            max_steps=self.max_steps,
-            save_steps=50,
-            loss_type="dr_grpo",
-            scale_rewards=False,
-            importance_sampling_level="sequence",
-            mask_truncated_completions=True,
-            epsilon=0.2,
-            epsilon_high=0.28,
-            temperature=self.temperature,
-            num_iterations=self.num_iterations,
+            # HPO-tunable params: self.* wins over yaml when explicitly set
+            learning_rate=self.learning_rate if self.learning_rate is not None else _cfg.get("learning_rate", 1.05e-5),
+            beta=self.beta if self.beta is not None else _cfg.get("beta", 0.051),
+            temperature=self.temperature if self.temperature is not None else _cfg.get("temperature", 1.012),
+            num_iterations=self.num_iterations if self.num_iterations is not None else _cfg.get("num_iterations", 1),
+            num_train_epochs=self.num_train_epochs if self.num_train_epochs is not None else _cfg.get("num_train_epochs", 2),
+            num_generations=self.num_generations if self.num_generations is not None else _cfg.get("num_generations", 8),
+            # Static params from yaml
+            per_device_train_batch_size=_cfg.get("per_device_train_batch_size", 8),
+            gradient_accumulation_steps=_cfg.get("gradient_accumulation_steps", 2),
+            max_completion_length=_cfg.get("max_completion_length", 256),
+            max_prompt_length=_cfg.get("max_prompt_length", 1024),
+            warmup_ratio=_cfg.get("warmup_ratio", 0.1),
+            max_grad_norm=_cfg.get("max_grad_norm", 0.5),
+            logging_steps=_cfg.get("logging_steps", 1),
+            loss_type=_cfg.get("loss_type", "dr_grpo"),
+            scale_rewards=_cfg.get("scale_rewards", False),
+            importance_sampling_level=_cfg.get("importance_sampling_level", "sequence"),
+            mask_truncated_completions=_cfg.get("mask_truncated_completions", True),
+            epsilon=_cfg.get("epsilon", 0.2),
+            epsilon_high=_cfg.get("epsilon_high", 0.28),
         )
 
         trainer = DynamicSamplingGRPOTrainer(

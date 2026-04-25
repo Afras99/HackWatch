@@ -1,3 +1,13 @@
+---
+title: HackWatch
+emoji: 🕵️
+colorFrom: yellow
+colorTo: red
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # HackWatch
 
 **OpenEnv-compatible RL environment for reward-hacking detection.**  
@@ -11,6 +21,23 @@ Ground truth comes from planted hack labels the environment controls — reward 
 F1=0.970 · Precision=1.000 · Recall=0.941 · Zero false positives  
 Held-out generalization: subprocess_escape F1=1.000, eval_injection F1=0.750  
 W&B: https://wandb.ai/afrasvellora777-student/hackwatch/runs/w9osws3o
+
+---
+
+## Deliverables
+
+| | Link |
+|---|---|
+| HF Space | https://huggingface.co/spaces/afrasvellora777/hackwatch |
+| Training Notebook | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Afras99/HackWatch/blob/main/training/train_hackwatch_colab.ipynb) |
+| Blog Post | [docs/blog.md](docs/blog.md) |
+| W&B Training Run | https://wandb.ai/afrasvellora777-student/hackwatch/runs/w9osws3o |
+| Code Repo | https://github.com/Afras99/HackWatch |
+
+### Training Curves
+
+![Reward Curve](docs/plots/reward_curve.png)
+![Loss Curve](docs/plots/loss_curve.png)
 
 ---
 

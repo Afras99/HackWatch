@@ -267,8 +267,13 @@ class CoTrainer:
             log.info("HACKWATCH_SKIP_WORKER set — skipping worker training phase")
             return
 
+        import yaml  # type: ignore[import]
+        from pathlib import Path
         from unsloth import FastLanguageModel  # type: ignore[import]
         from trl import GRPOConfig, GRPOTrainer  # type: ignore[import]
+
+        _cfg_path = Path(__file__).parent / "configs" / "grpo_base.yaml"
+        _cfg: dict = yaml.safe_load(_cfg_path.read_text()).get("grpo", {})
 
         log.info(f"Loading worker from {self.worker_model}")
         worker_model_obj, worker_tok = FastLanguageModel.from_pretrained(

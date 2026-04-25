@@ -24,7 +24,6 @@ os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
 os.environ["UNSLOTH_RETURN_HIDDEN_STATES"] = "0"
 
 import argparse
-import asyncio
 import hashlib
 import json
 import logging
@@ -32,7 +31,6 @@ import math
 import os
 import random
 import re
-import time
 from pathlib import Path
 from typing import Any
 
@@ -114,53 +112,6 @@ def parse_verdict(text: str) -> dict:
         except (json.JSONDecodeError, ValueError, KeyError):
             pass
     return {"verdict": "allow", "confidence": 0.5, "reasoning": "parse_error"}
-
-
-# ---------------------------------------------------------------------------
-# Rollout — one episode using the live env server
-# ---------------------------------------------------------------------------
-
-async def run_episode(
-    env_client: httpx.AsyncClient,
-    policy_fn,                    # callable(prompt: str) -> str
-    env_url: str,
-) -> dict:
-    """
-    Run one full episode; return {"reward": float, "steps": int, "prompts": [...], "completions": [...]}.
-    """
-    resp = await env_client.post(f"{env_url}/reset", json={})
-    resp.raise_for_status()
-    obs = resp.json()
-
-    prompts, completions, rewards = [], [], []
-    done = obs.get("episode_done", False)
-    step = 0
-    final_reward = 0.0
-
-    while not done:
-        prompt = make_prompt(obs)
-        completion = policy_fn(prompt)
-        action = parse_verdict(completion)
-
-        prompts.append(prompt)
-        completions.append(completion)
-
-        step_resp = await env_client.post(f"{env_url}/step", json=action)
-        step_resp.raise_for_status()
-        data = step_resp.json()
-
-        obs = data["observation"]
-        done = data.get("done", False) or obs.get("episode_done", False)
-        if data.get("reward") is not None:
-            final_reward = data["reward"]
-        step += 1
-
-    return {
-        "reward": final_reward,
-        "steps": step,
-        "prompts": prompts,
-        "completions": completions,
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -604,7 +555,7 @@ def build_prompt_dataset(env_url: str | None = None):
 # Model loading via Unsloth
 # ---------------------------------------------------------------------------
 
-def load_model(model_name: str, max_seq_len: int = 4096):
+def load_model(model_name: str, max_seq_len: int = 4096):  # noqa: C901
     """
     Load model + LoRA.
 
@@ -641,9 +592,14 @@ def load_model(model_name: str, max_seq_len: int = 4096):
     # ────────────────────────────────────────────────────────────────────────
 
     # ── Standard HF + PEFT path (active) ────────────────────────────────────
+    import yaml  # type: ignore[import]
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from peft import LoraConfig, TaskType, get_peft_model
+
+    _lora_cfg: dict = yaml.safe_load(
+        (_SIGNALS_PATH.parent.parent / "training" / "configs" / "grpo_base.yaml").read_text()
+    ).get("lora", {})
 
     tok = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     if tok.pad_token is None:
@@ -661,11 +617,11 @@ def load_model(model_name: str, max_seq_len: int = 4096):
     model.enable_input_require_grads()
 
     lora_config = LoraConfig(
-        r=32,
-        lora_alpha=32,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                        "gate_proj", "up_proj", "down_proj"],
-        lora_dropout=0.0,
+        r=_lora_cfg.get("r", 32),
+        lora_alpha=_lora_cfg.get("alpha", 64),
+        target_modules=_lora_cfg.get("target_modules", ["q_proj", "k_proj", "v_proj", "o_proj",
+                                                         "gate_proj", "up_proj", "down_proj"]),
+        lora_dropout=_lora_cfg.get("dropout", 0.0),
         bias="none",
         task_type=TaskType.CAUSAL_LM,
     )

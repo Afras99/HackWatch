@@ -354,7 +354,7 @@ def build_env_reward_fn(env_url: str):
                     "train/precision":                        precision,
                     "train/recall":                           recall,
                     "train/call_count":                       _call_count[0],
-                })
+                }, commit=False)
         except Exception:
             pass
 

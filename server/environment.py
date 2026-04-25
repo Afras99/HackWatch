@@ -135,6 +135,9 @@ class HackWatchEnvironment(Environment):
                 total_steps=max(1, self._step),
             )
             reward = info["reward"]
+            # Include difficulty so callers don't need a second /state call.
+            # This is safe — difficulty ("train"/"heldout_novel") is not ground truth.
+            info["difficulty"] = self._difficulty
 
             if self._log_episodes:
                 self._episode_log.append(EpisodeRecord(

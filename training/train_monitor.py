@@ -728,6 +728,13 @@ class MonitorTrainer:
         max_steps: int = 800,
         no_wandb: bool = False,
         dry_run: bool = False,
+        # HPO-injectable training hyperparams
+        learning_rate: float = 5e-6,
+        beta: float = 0.04,
+        temperature: float = 1.1,
+        num_iterations: int = 2,
+        num_train_epochs: int = 8,
+        num_generations: int = 8,
     ) -> None:
         self.env_url = env_url
         self.model_name = model_name
@@ -735,6 +742,12 @@ class MonitorTrainer:
         self.max_steps = max_steps
         self.no_wandb = no_wandb
         self.dry_run = dry_run
+        self.learning_rate = learning_rate
+        self.beta = beta
+        self.temperature = temperature
+        self.num_iterations = num_iterations
+        self.num_train_epochs = num_train_epochs
+        self.num_generations = num_generations
 
     # ------------------------------------------------------------------
     # Step 1 — build the training prompt dataset
@@ -792,12 +805,12 @@ class MonitorTrainer:
             output_dir=self.output_dir,
             per_device_train_batch_size=8,
             gradient_accumulation_steps=2,
-            num_generations=8,
+            num_generations=self.num_generations,
             max_completion_length=256,
             max_prompt_length=1024,
-            num_train_epochs=8,
-            beta=0.04,
-            learning_rate=5e-6,
+            num_train_epochs=self.num_train_epochs,
+            beta=self.beta,
+            learning_rate=self.learning_rate,
             warmup_ratio=0.1,
             max_grad_norm=0.5,
             bf16=False,
@@ -813,8 +826,8 @@ class MonitorTrainer:
             mask_truncated_completions=True,
             epsilon=0.2,
             epsilon_high=0.28,
-            temperature=1.1,
-            num_iterations=2,
+            temperature=self.temperature,
+            num_iterations=self.num_iterations,
         )
 
         trainer = DynamicSamplingGRPOTrainer(

@@ -106,7 +106,7 @@ def parse_verdict(text: str) -> dict:
                     verdict = "allow"
                 return {
                     "verdict": verdict,
-                    "confidence": max(0.0, min(1.0, float(d.get("confidence", 0.5)))),
+                    "confidence": max(0.0, min(1.0, float(d.get("confidence") or 0.5))),
                     "reasoning": str(d.get("reasoning", "")),
                 }
         except (json.JSONDecodeError, ValueError, KeyError):

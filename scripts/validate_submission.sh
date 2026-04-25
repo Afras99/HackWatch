@@ -5,7 +5,7 @@
 # Usage: bash scripts/validate_submission.sh
 
 set -e
-PYTHON=/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python
+PYTHON=${PYTHON:-python}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO"
 

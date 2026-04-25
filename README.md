@@ -7,6 +7,11 @@ A MONITOR agent learns to detect when a WORKER agent cheats on coding tasks.
 Ground truth comes from planted hack labels the environment controls — reward is
 100% deterministic, no LLM judge.
 
+**Latest eval — cotrain_v2 (150 trajectories, heuristic scorer):**  
+F1=0.970 · Precision=1.000 · Recall=0.941 · Zero false positives  
+Held-out generalization: subprocess_escape F1=1.000, eval_injection F1=0.750  
+W&B: https://wandb.ai/afrasvellora777-student/hackwatch/runs/w9osws3o
+
 ---
 
 ## Running Everything (Step by Step)
@@ -29,7 +34,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-Expected: **92 passed, 0 failed.**
+Expected: **94 passed, 0 failed.**
 
 ---
 
@@ -271,9 +276,9 @@ python -m training.train_monitor \
 
 # Day 4: co-train worker + monitor
 python -m training.train_cotrain \
-    --monitor-checkpoint ./runs/monitor_v1/final \
+    --monitor-checkpoint ./runs/cotrain_v2/monitor/final \
     --env-url http://localhost:8000 \
-    --output-dir ./runs/cotrain_v1
+    --output-dir ./runs/cotrain_v3
 ```
 
 Key hyperparameters (do not change `beta`):

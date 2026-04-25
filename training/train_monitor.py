@@ -688,75 +688,181 @@ def main():
     parser.add_argument("--dry-run",   action="store_true", help="Skip model load; verify pipeline only")
     args = parser.parse_args()
 
-    if args.dry_run:
-        log.info("Dry run: building dataset and reward fn only")
-        dataset = build_prompt_dataset(args.env_url)
-        reward_fn = build_env_reward_fn(args.env_url)
-        sample = dataset[0]
-        rewards = reward_fn(["allow"], [sample["prompt"]])
-        log.info(f"Dataset size: {len(dataset)}, sample reward: {rewards}")
-        return
-
-    model, tok = load_model(args.model)
-
-    from trl import GRPOConfig  # type: ignore[import]
-    from training.dynamic_grpo import DynamicSamplingGRPOTrainer
-
-    config = GRPOConfig(
+    MonitorTrainer(
+        env_url=args.env_url,
+        model_name=args.model,
         output_dir=args.output_dir,
-        per_device_train_batch_size=8,   # must equal num_generations for GRPO
-        gradient_accumulation_steps=2,
-        num_generations=8,               # 8 rollouts/step; balanced with batch size
-        max_completion_length=256,       # monitor JSON is short; 256 is plenty
-        max_prompt_length=1024,
-        num_train_epochs=8,              # more epochs; UCB dataset grows over runs
-        beta=0.04,                       # per CLAUDE.md guardrail: do not go below 0.01; 0.04 gives proper KL penalty
-        learning_rate=5e-6,
-        warmup_ratio=0.1,
-        max_grad_norm=0.5,
-        bf16=False,
-        fp16=True,
-        optim="adamw_torch_fused",
-        logging_steps=1,
-        report_to="none" if args.no_wandb else "wandb",
         max_steps=args.max_steps,
-        save_steps=50,
-        # Dr GRPO (arXiv 2503.20783): remove length+variance normalization bias.
-        loss_type='dr_grpo',
-        scale_rewards=False,             # per-sample (not batch) — avoids re-introducing std bias
-        # GSPO sequence-level importance sampling (arXiv 2505.01301)
-        importance_sampling_level='sequence',
-        # DAPO overlong penalty: mask gradients from truncated completions
-        mask_truncated_completions=True,
-        # DAPO clip_higher (arXiv 2503.14476): asymmetric clipping
-        epsilon=0.2,
-        epsilon_high=0.28,
-        # Slightly elevated temperature for generation diversity (DRA-GRPO §3)
-        temperature=1.1,
-        # Reuse each generated batch for 2 gradient updates (GRPO µ parameter).
-        # Free 2× gradient updates per env rollout — no extra HTTP calls needed.
-        num_iterations=2,
-    )
+        no_wandb=args.no_wandb,
+        dry_run=args.dry_run,
+    ).run()
 
-    dataset = build_prompt_dataset(args.env_url)
-    reward_fn = build_env_reward_fn(args.env_url)
 
-    trainer = DynamicSamplingGRPOTrainer(
-        model=model,
-        processing_class=tok,
-        args=config,
-        train_dataset=dataset,
-        reward_funcs=[reward_fn],
-    )
+# ---------------------------------------------------------------------------
+# MonitorTrainer — service class wrapping the full GRPO training pipeline
+# ---------------------------------------------------------------------------
 
-    log.info(f"Starting GRPO training — {len(dataset)} prompts, max_steps={args.max_steps}")
-    trainer.train()
 
-    out = f"{args.output_dir}/final"
-    model.save_pretrained(out)
-    tok.save_pretrained(out)
-    log.info(f"Saved to {out}")
+class MonitorTrainer:
+    """Orchestrates GRPO training for the HackWatch MONITOR agent.
+
+    Wraps the module-level ``build_prompt_dataset``, ``build_env_reward_fn``,
+    ``load_model``, and ``score_action_heuristically`` functions in a clean
+    service class.  All config is stored in ``__init__``; no config is loaded
+    inside methods.
+
+    Args:
+        env_url: URL of the running HackWatch env server.
+        model_name: HF model name or local path for the base model.
+        output_dir: Directory to save trained model checkpoints.
+        max_steps: Maximum GRPO training steps.
+        no_wandb: Disable W&B logging when ``True``.
+        dry_run: Validate pipeline without GPU training when ``True``.
+    """
+
+    def __init__(
+        self,
+        env_url: str = "http://localhost:8000",
+        model_name: str = "Qwen/Qwen2.5-3B-Instruct",
+        output_dir: str = "./runs/monitor_v1",
+        max_steps: int = 800,
+        no_wandb: bool = False,
+        dry_run: bool = False,
+    ) -> None:
+        self.env_url = env_url
+        self.model_name = model_name
+        self.output_dir = output_dir
+        self.max_steps = max_steps
+        self.no_wandb = no_wandb
+        self.dry_run = dry_run
+
+    # ------------------------------------------------------------------
+    # Step 1 — build the training prompt dataset
+    # ------------------------------------------------------------------
+
+    def _build_dataset(self):
+        """Build the UCB-weighted GRPO training dataset.
+
+        Returns:
+            HuggingFace ``Dataset`` of message-list prompt rows.
+        """
+        return build_prompt_dataset(self.env_url)
+
+    # ------------------------------------------------------------------
+    # Step 2 — build the env-backed reward function
+    # ------------------------------------------------------------------
+
+    def _build_reward_fn(self):
+        """Return the env-backed reward callable for GRPOTrainer.
+
+        Returns:
+            Reward function ``(completions, prompts, **kwargs) -> list[float]``.
+        """
+        return build_env_reward_fn(self.env_url)
+
+    # ------------------------------------------------------------------
+    # Step 3 — load base model + LoRA
+    # ------------------------------------------------------------------
+
+    def _load_model(self):
+        """Load the base model and tokenizer with LoRA applied.
+
+        Returns:
+            ``(model, tokenizer)`` tuple.
+        """
+        return load_model(self.model_name)
+
+    # ------------------------------------------------------------------
+    # Step 4 — configure and run GRPO training
+    # ------------------------------------------------------------------
+
+    def _train(self, model, tok, dataset, reward_fn) -> None:
+        """Configure and run ``DynamicSamplingGRPOTrainer``.
+
+        Args:
+            model: PEFT-wrapped language model.
+            tok: Corresponding tokenizer.
+            dataset: Prompt dataset from ``_build_dataset()``.
+            reward_fn: Reward callable from ``_build_reward_fn()``.
+        """
+        from trl import GRPOConfig  # type: ignore[import]
+        from training.dynamic_grpo import DynamicSamplingGRPOTrainer
+
+        config = GRPOConfig(
+            output_dir=self.output_dir,
+            per_device_train_batch_size=8,
+            gradient_accumulation_steps=2,
+            num_generations=8,
+            max_completion_length=256,
+            max_prompt_length=1024,
+            num_train_epochs=8,
+            beta=0.04,
+            learning_rate=5e-6,
+            warmup_ratio=0.1,
+            max_grad_norm=0.5,
+            bf16=False,
+            fp16=True,
+            optim="adamw_torch_fused",
+            logging_steps=1,
+            report_to="none" if self.no_wandb else "wandb",
+            max_steps=self.max_steps,
+            save_steps=50,
+            loss_type="dr_grpo",
+            scale_rewards=False,
+            importance_sampling_level="sequence",
+            mask_truncated_completions=True,
+            epsilon=0.2,
+            epsilon_high=0.28,
+            temperature=1.1,
+            num_iterations=2,
+        )
+
+        trainer = DynamicSamplingGRPOTrainer(
+            model=model,
+            processing_class=tok,
+            args=config,
+            train_dataset=dataset,
+            reward_funcs=[reward_fn],
+        )
+
+        log.info(
+            f"Starting GRPO training — {len(dataset)} prompts, "
+            f"max_steps={self.max_steps}"
+        )
+        trainer.train()
+
+        out = f"{self.output_dir}/final"
+        model.save_pretrained(out)
+        tok.save_pretrained(out)
+        log.info(f"Saved to {out}")
+
+    # ------------------------------------------------------------------
+    # Public entry point
+    # ------------------------------------------------------------------
+
+    def run(self) -> None:
+        """Run the full training pipeline.
+
+        In ``dry_run`` mode: builds dataset and reward fn, verifies one sample
+        reward call, then returns without loading the GPU model.
+        """
+        if self.dry_run:
+            log.info("Dry run: building dataset and reward fn only")
+            dataset = self._build_dataset()
+            reward_fn = self._build_reward_fn()
+            sample = dataset[0]
+            rewards = reward_fn(["allow"], [sample["prompt"]])
+            log.info(f"Dataset size: {len(dataset)}, sample reward: {rewards}")
+            return
+
+        model, tok = self._load_model()
+        dataset = self._build_dataset()
+        reward_fn = self._build_reward_fn()
+        self._train(model, tok, dataset, reward_fn)
 
 
 if __name__ == "__main__":
     main()
+
+# Run on terminal:
+# python -m training.train_monitor --dry-run

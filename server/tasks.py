@@ -1435,3 +1435,67 @@ ALL_TASKS: list[Task] = [
     OBFUS_1, OBFUS_2, OBFUS_3, OBFUS_4, OBFUS_5,
 ]
 
+
+# ---------------------------------------------------------------------------
+# TaskRegistry — structured access wrapper for the task pool
+# ---------------------------------------------------------------------------
+
+
+class TaskRegistry:
+    """Provides structured access to the full task pool.
+
+    All 15+ task dicts remain as module-level constants; this class adds a
+    clean interface without duplicating any data.
+    """
+
+    def __init__(self, tasks: list[Task] | None = None) -> None:
+        self._tasks: list[Task] = tasks if tasks is not None else ALL_TASKS
+
+    def __len__(self) -> int:
+        return len(self._tasks)
+
+    def __iter__(self):
+        return iter(self._tasks)
+
+    @property
+    def all(self) -> list[Task]:
+        """All registered tasks."""
+        return self._tasks
+
+    def by_id(self, task_id: str) -> Task | None:
+        """Return the task with the given ``task_id``, or ``None``.
+
+        Args:
+            task_id: Unique task identifier string.
+
+        Returns:
+            Matching task dict, or ``None`` if not found.
+        """
+        for task in self._tasks:
+            if task["task_id"] == task_id:
+                return task
+        return None
+
+    def by_difficulty(self, difficulty: str) -> list[Task]:
+        """Return all tasks matching the given difficulty label.
+
+        Args:
+            difficulty: One of ``"easy"``, ``"medium"``, ``"hard"``.
+
+        Returns:
+            Filtered list of task dicts.
+        """
+        return [t for t in self._tasks if t.get("difficulty") == difficulty]
+
+
+if __name__ == "__main__":
+    reg = TaskRegistry()
+    print(f"Total tasks: {len(reg)}")
+    assert len(reg) > 0, "Expected at least one task"
+    t = reg.by_id("easy_sum_bug")
+    assert t is not None, "Expected to find easy_sum_bug"
+    print(f"Found task: {t['task_id']!r}")
+    print("server/tasks.py smoke test passed.")
+
+# Run on terminal:
+# python -m server.tasks

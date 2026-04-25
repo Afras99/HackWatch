@@ -27,6 +27,7 @@ grpo:
   report_to: "wandb"
   num_train_epochs: 1
   warmup_steps: 10
+  dynamic_sampling_noise: 0.005  # σ for DAPO noise injection on zero-std groups; set 0.0 to disable
 
 env:
   base_url: "http://localhost:8000"

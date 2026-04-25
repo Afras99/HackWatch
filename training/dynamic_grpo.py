@@ -16,8 +16,11 @@ TRL 0.24 without patching the data pipeline.
 """
 from __future__ import annotations
 
+import logging
 import torch
 from trl import GRPOTrainer
+
+log = logging.getLogger(__name__)
 
 
 class DynamicSamplingGRPOTrainer(GRPOTrainer):
@@ -32,6 +35,11 @@ class DynamicSamplingGRPOTrainer(GRPOTrainer):
     def __init__(self, *args, dynamic_sampling_noise: float = 0.005, **kwargs):
         super().__init__(*args, **kwargs)
         self._ds_noise = dynamic_sampling_noise
+        if not hasattr(super(), "_generate_and_score_completions"):
+            log.warning(
+                "DynamicSamplingGRPOTrainer: _generate_and_score_completions not found "
+                "in this TRL version — dynamic sampling noise will be a no-op."
+            )
 
     def _generate_and_score_completions(self, inputs):
         output = super()._generate_and_score_completions(inputs)
@@ -51,10 +59,14 @@ class DynamicSamplingGRPOTrainer(GRPOTrainer):
         if bs == 0 or bs % num_gen != 0:
             return
 
+        if num_gen < 2:
+            return  # std is undefined (NaN) for a single sample per group
+
         n_groups = bs // num_gen
         grouped = adv.view(n_groups, num_gen)
-        # std(advantages) ≈ 0 means all completions in group were equal-reward
-        stds = grouped.std(dim=1)  # (n_groups,)
+        # std(advantages) ≈ 0 means all completions in group were equal-reward.
+        # unbiased=False uses N denominator — avoids NaN when num_gen=2 and both values are equal.
+        stds = grouped.std(dim=1, unbiased=False)  # (n_groups,)
         zero_mask = stds < 1e-6   # True for degenerate groups
 
         if not zero_mask.any():

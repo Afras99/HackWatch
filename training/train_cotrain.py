@@ -168,37 +168,43 @@ class CoTrainer:
             dataset: UCB-weighted message-list prompt dataset.
             reward_fn: Env-backed reward function callable.
         """
+        import yaml  # type: ignore[import]
+        from pathlib import Path
         from trl import GRPOConfig  # type: ignore[import]
         from training.dynamic_grpo import DynamicSamplingGRPOTrainer
         from transformers import TrainerCallback  # type: ignore[import]
 
-        report = "none" if self.no_wandb else "wandb"
+        _cfg_path = Path(__file__).parent / "configs" / "grpo_base.yaml"
+        _cfg: dict = yaml.safe_load(_cfg_path.read_text()).get("grpo", {})
+
+        report = "none" if self.no_wandb else _cfg.get("report_to", "wandb")
         monitor_cfg = GRPOConfig(
             output_dir=f"{self.output_dir}/monitor",
-            per_device_train_batch_size=8,
-            gradient_accumulation_steps=2,
-            num_generations=8,
-            max_completion_length=512,
-            max_prompt_length=1024,
-            num_train_epochs=1,
-            beta=0.01,
-            learning_rate=5e-6,
-            warmup_ratio=0.1,
-            max_grad_norm=0.5,
+            max_steps=min(self.total_episodes // 2, 300),
+            save_steps=50,
+            report_to=report,
             bf16=False,
             fp16=True,
             optim="adamw_torch_fused",
-            logging_steps=1,
-            report_to=report,
-            max_steps=min(self.total_episodes // 2, 300),
-            save_steps=50,
-            loss_type="dr_grpo",
-            scale_rewards=False,
-            importance_sampling_level="sequence",
-            mask_truncated_completions=True,
-            epsilon=0.2,
-            epsilon_high=0.28,
-            temperature=1.1,
+            per_device_train_batch_size=_cfg.get("per_device_train_batch_size", 8),
+            gradient_accumulation_steps=_cfg.get("gradient_accumulation_steps", 2),
+            num_generations=_cfg.get("num_generations", 8),
+            max_completion_length=_cfg.get("max_completion_length", 256),
+            max_prompt_length=_cfg.get("max_prompt_length", 1024),
+            num_train_epochs=_cfg.get("num_train_epochs", 2),
+            beta=_cfg.get("beta", 0.051),
+            learning_rate=_cfg.get("learning_rate", 1.05e-5),
+            warmup_ratio=_cfg.get("warmup_ratio", 0.1),
+            max_grad_norm=_cfg.get("max_grad_norm", 0.5),
+            logging_steps=_cfg.get("logging_steps", 1),
+            loss_type=_cfg.get("loss_type", "dr_grpo"),
+            scale_rewards=_cfg.get("scale_rewards", False),
+            importance_sampling_level=_cfg.get("importance_sampling_level", "sequence"),
+            mask_truncated_completions=_cfg.get("mask_truncated_completions", True),
+            epsilon=_cfg.get("epsilon", 0.2),
+            epsilon_high=_cfg.get("epsilon_high", 0.28),
+            temperature=_cfg.get("temperature", 1.012),
+            num_iterations=_cfg.get("num_iterations", 1),
         )
 
         _ema_state: dict = {"value": None}
@@ -276,17 +282,19 @@ class CoTrainer:
         )
 
         report = "none" if self.no_wandb else "wandb"
+        # Worker uses its own adversarial config — intentionally different from
+        # monitor. Only structural params (batch, logging) come from yaml.
         worker_cfg = GRPOConfig(
             output_dir=f"{self.output_dir}/worker",
-            per_device_train_batch_size=1,
-            gradient_accumulation_steps=8,
+            per_device_train_batch_size=_cfg.get("per_device_train_batch_size", 8),
+            gradient_accumulation_steps=_cfg.get("gradient_accumulation_steps", 2),
             num_generations=4,
             max_completion_length=512,
             max_prompt_length=2048,
             beta=0.04,
             learning_rate=5e-7,
-            max_grad_norm=0.5,
-            logging_steps=1,
+            max_grad_norm=_cfg.get("max_grad_norm", 0.5),
+            logging_steps=_cfg.get("logging_steps", 1),
             report_to=report,
             max_steps=self.total_episodes // 4,
             save_steps=50,

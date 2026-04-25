@@ -5,7 +5,6 @@ Mounts the REST API under / and the React demo under /demo.
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException

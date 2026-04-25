@@ -15,10 +15,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from hackwatch.models import MonitorAction, MonitorObservation, HackWatchState
-from server.exploits import ALL_PRIMITIVES, apply_combo_hack, make_unified_diff
+from server.exploits import ALL_PRIMITIVES, make_unified_diff
 from server.reward import compute_episode_reward
 from server.tasks import ALL_TASKS, Task
-from server.workers import WORKER_BANK, sample_worker
+from server.workers import sample_worker
 
 try:
     from openenv.core import Environment  # type: ignore[import]

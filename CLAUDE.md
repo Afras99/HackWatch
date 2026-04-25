@@ -7,13 +7,21 @@ Trains a MONITOR agent to detect reward-hacking by a WORKER agent on coding task
 
 ## Conda environment
 
-Always use: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python`
+Always use: `/home/afrasaboobackerp/.conda/envs/hackwatch/bin/python`
 
-Run tests: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python -m pytest tests/ -v`
+Run tests: `/home/afrasaboobackerp/.conda/envs/hackwatch/bin/python -m pytest tests/ -v`
 
-Install deps: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/pip install -e ".[dev]"`
+Install deps: `/home/afrasaboobackerp/.conda/envs/hackwatch/bin/pip install -e ".[dev]"`
 
-Start server: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python -m uvicorn server.app:app --reload`
+Start server: `/home/afrasaboobackerp/.conda/envs/hackwatch/bin/uvicorn server.app:app --reload`
+
+## Environment server URL
+
+The training/eval code uses `HACKWATCH_ENV_URL` to find the env server:
+- **Local default**: `http://localhost:8000` (start uvicorn above)
+- **HF Space**: `export HACKWATCH_ENV_URL=https://afras99-hackwatch.hf.space`
+- Colab notebook reads this env var — set it before running cell 6 to skip local server startup
+- `inference.py` reads it for the hackathon validator (set it to the live HF Space URL)
 
 ## Critical invariants (never break these)
 
@@ -26,10 +34,10 @@ Start server: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python -m u
 
 - Python 3.11, FastAPI, Pydantic v2
 - Training: TRL 0.24 + Unsloth + Qwen2.5-3B-Instruct (LoRA r=32)
-- Tests: pytest (92 tests, all green)
+- Tests: pytest (119 tests, all green)
 - Demo: `/demo/build/index.html` served at `/demo` by FastAPI
 
-## Current status (as of Apr 22, 2026)
+## Current status (as of Apr 25, 2026)
 
 **Done:**
 - Full environment: reset/step, 8 exploit primitives, 15 tasks, 92 tests green
@@ -66,6 +74,56 @@ Start server: `/Users/afrasaboobackerp/miniconda3/envs/hackwatch/bin/python -m u
 - Day 3: run GRPO training on GPU, capture real W&B curves, swap illustrative chart in demo
 - Day 4: co-training worker + monitor with adversarial curriculum
 - Day 5: HF Space push, validator run, final demo polish
+
+## Import Style
+
+**Always use absolute imports** — no relative imports.
+
+```python
+# CORRECT
+from server.exploits import ALL_PRIMITIVES
+from training.dynamic_grpo import DynamicSamplingGRPOTrainer
+
+# WRONG
+from .exploits import ALL_PRIMITIVES
+```
+
+**Lazy imports inside functions** are intentional for heavy libraries that are only needed in one code path. Do not move them to the top of the file.
+
+```python
+# CORRECT — datasets is slow to import; only needed when building the dataset
+def build_prompt_dataset(...):
+    from datasets import Dataset
+    from server.tasks import ALL_TASKS
+
+# WRONG — pays import cost even when the function is never called
+import datasets
+from server.tasks import ALL_TASKS
+```
+
+**Dead imports must be removed.** If you import something and don't use it, delete the import line.
+
+## Code Standards
+
+- **No bare `except:`** — always catch specific exceptions (`except Exception:` minimum)
+- **No hardcoded secrets** — credentials via environment variables only
+- **No unused variables or imports** — remove dead code immediately
+- **No mutation of shared state** in reward functions — they run concurrently per batch
+- Functions >50 lines should be split into smaller focused helpers
+- Files >400 lines should be considered for splitting
+
+## Training Stack (as of Apr 25, 2026)
+
+Unsloth is **commented out** in `training/train_monitor.py` due to a bug in
+Unsloth 2026.4.8: `UNSLOTH_RETURN_HIDDEN_STATES=1` causes the GRPO reference
+forward pass to return 3D hidden states instead of 2D log probs, making KL
+divergence explode to ~40M and grad_norm → NaN.
+
+**Active path**: standard `transformers.AutoModelForCausalLM` + PEFT LoRA (r=32,
+same target modules as the Unsloth config). Re-enable the Unsloth block in
+`load_model()` once that upstream bug is fixed.
+
+TRL parameter: use `processing_class=tok` (not `tokenizer=tok`) — renamed in TRL 0.22.
 
 ## graphify
 

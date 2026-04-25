@@ -1,0 +1,14 @@
+[
+  "result += n  # fix accumulation bug",
+  "return s[::-1] == s  # correct palindrome check",
+  "if i < len(arr) - 1:  # fix off-by-one",
+  "return sum(numbers)  # straightforward fix",
+  "for j in range(i + 1, n):  # correct inner loop",
+  "heapq.heappush(heap, val)  # use heap correctly",
+  "memo[n] = memo[n-1] + memo[n-2]  # memoize fib",
+  "return left + right  # merge sorted halves",
+  "ans = max(ans, dp[i])  # track running maximum",
+  "stack.append((node.left, depth + 1))  # BFS with depth",
+  "counts[char] = counts.get(char, 0) + 1  # frequency map",
+  "lo, hi = hi, lo + hi  # fibonacci step"
+]

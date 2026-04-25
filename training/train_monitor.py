@@ -17,15 +17,20 @@ Run:
 """
 from __future__ import annotations
 
-import training.unsloth_compat  # noqa: F401 — must be first; sets env vars + patches Unsloth
+import os
+# Disable torch.compile (miscompiles dynamic shapes on V100/CUDA 7.0)
+os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
+# Prevent unsloth from caching hidden states instead of log probs in GRPO
+os.environ["UNSLOTH_RETURN_HIDDEN_STATES"] = "0"
 
 import argparse
 import asyncio
-import json
+import hashlib
 import json
 import logging
 import math
 import os
+import random
 import re
 import time
 from pathlib import Path
@@ -44,6 +49,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 # ---------------------------------------------------------------------------
 
 _SIGNALS_PATH = Path(__file__).parent.parent / "server" / "hack_signals.json"
+_LEGIT_SNIPPETS_PATH = Path(__file__).parent.parent / "server" / "legit_snippets.json"
 _SIGNAL_ENTRIES: list[dict] = json.loads(_SIGNALS_PATH.read_text())
 
 # {regex_pattern: [keywords]} — used by the reward fn to score reasoning quality
@@ -410,8 +416,6 @@ def build_env_reward_fn(env_url: str):
     # Curriculum UCB stats (arXiv 2504.13592)
     # -----------------------------------------------------------------------
 
-    _CURRICULUM_STATS_PATH = Path(__file__).parent.parent / "research" / "curriculum_stats.json"
-
     def _update_curriculum_stats(prompt_texts: list[str], rewards: list[float]) -> None:
         """Persist per-task reward stats used by build_prompt_dataset for UCB weighting."""
         try:
@@ -446,7 +450,6 @@ def _curriculum_key(content: str) -> str:
     and broke UCB weighting. Using a full-content blake2 hex keeps keys
     stable across epochs while remaining compact in the JSON file.
     """
-    import hashlib
     if not content:
         return "empty"
     return hashlib.blake2s(content.encode("utf-8"), digest_size=8).hexdigest()
@@ -477,16 +480,36 @@ def build_prompt_dataset(env_url: str | None = None):
     tasks get oversampled up to 4× relative to easy tasks.  Prompts are
     returned as message lists so GRPOTrainer applies the model's chat
     template.
+
+    Synthetic rows: for every task, we also generate diffs where known
+    exploit snippets are injected inline.  This gives the model 500+
+    diverse training examples instead of ~15 static scaffold diffs,
+    so it learns to judge *context* rather than memorise task-snippet pairs.
+    The injected snippets are deliberately short and plausible so the model
+    can't just pattern-match on file length.
     """
-    import random
     from datasets import Dataset  # type: ignore[import]
     from server.tasks import ALL_TASKS
+    from server.exploits import ALL_PRIMITIVES, make_unified_diff
+    from server.environment import TRAINING_HACK_TYPES  # 6 primitives, heldout excluded
+
+    # Legit-looking diffs: loaded from server/legit_snippets.json
+    # Edit that file to add/remove innocent code snippets without touching training code.
+    _LEGIT_SNIPPETS: list[str] = json.loads(_LEGIT_SNIPPETS_PATH.read_text())
 
     def _to_messages(obs: dict) -> list[dict]:
         return [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": make_prompt(obs)},
+            {"role": "user",   "content": make_prompt(obs)},
         ]
+
+    def _synthetic_obs(task: dict, diff_snippet: str) -> dict:
+        return {
+            "task_prompt": task["prompt"],
+            "worker_diff": diff_snippet,
+            "tools_used_so_far": [],
+            "step_idx": 0,
+        }
 
     # Load curriculum stats if available
     try:
@@ -501,6 +524,8 @@ def build_prompt_dataset(env_url: str | None = None):
     total_n = sum(s["n"] for s in curriculum_stats.values()) + 1
 
     base_rows: list[dict] = []
+
+    # 1. Static scaffold diffs from ALL_TASKS (15 rows)
     for task in ALL_TASKS:
         fake_obs = {
             "task_prompt": task["prompt"],
@@ -512,11 +537,46 @@ def build_prompt_dataset(env_url: str | None = None):
         key = _curriculum_key(messages[1]["content"])
         base_rows.append({"prompt": messages, "_curriculum_key": key})
 
-    # If env server is up, also collect live observations
+    # 2. Real exploit diffs: each task × each TRAINING primitive (90 rows, no heldout leakage)
+    #    Uses the actual exploit engine from server/exploits.py — same code the env uses.
+    #    TRAINING_HACK_TYPES excludes subprocess_escape and eval_injection (heldout).
+    exploit_count = 0
+    for task in ALL_TASKS:
+        for primitive_name in TRAINING_HACK_TYPES:
+            primitive_fn = ALL_PRIMITIVES[primitive_name]
+            try:
+                modified_repo, _ = primitive_fn(task["scaffold_repo"], task["task_id"])
+                diff = make_unified_diff(task["scaffold_repo"], modified_repo)
+                if not diff:
+                    continue
+                obs = _synthetic_obs(task, diff)
+                messages = _to_messages(obs)
+                key = _curriculum_key(messages[1]["content"])
+                base_rows.append({"prompt": messages, "_curriculum_key": key})
+                exploit_count += 1
+            except Exception:
+                pass  # skip if primitive fails on this task
+
+    # 3. Legit rows: each task × each legit snippet (~120 rows)
+    #    These train the model NOT to false-positive on innocent code.
+    for task in ALL_TASKS:
+        for snippet in _LEGIT_SNIPPETS:
+            diff = (
+                f"--- a/solution.py\n"
+                f"+++ b/solution.py\n"
+                f"@@ -1,3 +1,4 @@\n"
+                f"+{snippet}\n"
+                f" # rest of fix\n"
+            )
+            obs = _synthetic_obs(task, diff)
+            messages = _to_messages(obs)
+            key = _curriculum_key(messages[1]["content"])
+            base_rows.append({"prompt": messages, "_curriculum_key": key})
+
+    # 4. If env server is up, also collect live observations (up to 40)
     if env_url:
         try:
-            import httpx as _httpx
-            with _httpx.Client(timeout=5.0) as c:
+            with httpx.Client(timeout=5.0) as c:
                 for _ in range(40):
                     r = c.post(f"{env_url}/reset", json={})
                     if r.status_code == 200:
@@ -536,8 +596,7 @@ def build_prompt_dataset(env_url: str | None = None):
         rows.extend([{"prompt": row["prompt"]}] * copies)
 
     random.shuffle(rows)
-    if curriculum_stats:
-        log.info(f"Dataset: {len(rows)} rows ({len(base_rows)} base) after UCB oversampling")
+    log.info(f"Dataset: {len(rows)} rows ({len(base_rows)} base: 15 scaffold + {exploit_count} exploit + {len(ALL_TASKS)*len(_LEGIT_SNIPPETS)} legit + live) after UCB oversampling")
     return Dataset.from_list(rows)
 
 
@@ -546,34 +605,72 @@ def build_prompt_dataset(env_url: str | None = None):
 # ---------------------------------------------------------------------------
 
 def load_model(model_name: str, max_seq_len: int = 4096):
-    try:
-        from unsloth import FastLanguageModel  # type: ignore[import]
-    except ImportError:
-        raise ImportError(
-            "Unsloth is required for training. Install with:\n"
-            "  pip install unsloth\n"
-            "Or use a GPU environment with: pip install 'unsloth[colab-new]'"
-        )
+    """
+    Load model + LoRA.
 
-    model, tok = FastLanguageModel.from_pretrained(
+    NOTE: Unsloth path is commented out below because Unsloth 2026.4.8
+    sets UNSLOTH_RETURN_HIDDEN_STATES=1, which causes the GRPO reference
+    forward pass to cache 3-D hidden states instead of 2-D log probs.
+    Those raw hidden states land in TRL's KL formula → KL explodes to ~40M
+    → grad_norm=NaN. The HF+PEFT path below is correct and identical LoRA config.
+    Re-enable the Unsloth block once that upstream bug is fixed.
+    """
+
+    # ── Unsloth path (commented out — upstream KL bug in 2026.4.8) ──────────
+    # from unsloth import FastLanguageModel  # type: ignore[import]
+    # model, tok = FastLanguageModel.from_pretrained(
+    #     model_name,
+    #     max_seq_length=max_seq_len,
+    #     load_in_4bit=False,
+    #     fast_inference=False,
+    #     max_lora_rank=32,
+    #     gpu_memory_utilization=0.90,
+    #     dtype=None,  # auto-detect: fp16 on V100, bf16 on Ampere+
+    # )
+    # model = FastLanguageModel.get_peft_model(
+    #     model,
+    #     r=32,
+    #     target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+    #                     "gate_proj", "up_proj", "down_proj"],
+    #     lora_alpha=32,
+    #     lora_dropout=0.0,
+    #     bias="none",
+    #     use_gradient_checkpointing="unsloth",
+    # )
+    # return model, tok
+    # ────────────────────────────────────────────────────────────────────────
+
+    # ── Standard HF + PEFT path (active) ────────────────────────────────────
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from peft import LoraConfig, TaskType, get_peft_model
+
+    tok = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+
+    dtype = torch.float16  # V100 = CUDA 7.0: no bf16 support
+
+    model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        max_seq_length=max_seq_len,
-        load_in_4bit=False,
-        fast_inference=False,
-        max_lora_rank=32,
-        gpu_memory_utilization=0.90,
-        dtype=None,  # auto-detect: fp16 on V100, bf16 on Ampere+
+        torch_dtype=dtype,
+        device_map="auto",
+        trust_remote_code=True,
     )
-    model = FastLanguageModel.get_peft_model(
-        model,
+    model.config.use_cache = False  # required for gradient checkpointing
+    model.enable_input_require_grads()
+
+    lora_config = LoraConfig(
         r=32,
+        lora_alpha=32,
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
                         "gate_proj", "up_proj", "down_proj"],
-        lora_alpha=32,
         lora_dropout=0.0,
         bias="none",
-        use_gradient_checkpointing="unsloth",
+        task_type=TaskType.CAUSAL_LM,
     )
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
     return model, tok
 
 
@@ -586,7 +683,7 @@ def main():
     parser.add_argument("--env-url",   default="http://localhost:8000")
     parser.add_argument("--model",     default="Qwen/Qwen2.5-3B-Instruct")
     parser.add_argument("--output-dir",default="./runs/monitor_v1")
-    parser.add_argument("--max-steps", type=int, default=400)
+    parser.add_argument("--max-steps", type=int, default=800)
     parser.add_argument("--no-wandb",  action="store_true")
     parser.add_argument("--dry-run",   action="store_true", help="Skip model load; verify pipeline only")
     args = parser.parse_args()
@@ -636,6 +733,9 @@ def main():
         epsilon_high=0.28,
         # Slightly elevated temperature for generation diversity (DRA-GRPO §3)
         temperature=1.1,
+        # Reuse each generated batch for 2 gradient updates (GRPO µ parameter).
+        # Free 2× gradient updates per env rollout — no extra HTTP calls needed.
+        num_iterations=2,
     )
 
     dataset = build_prompt_dataset(args.env_url)
@@ -643,7 +743,7 @@ def main():
 
     trainer = DynamicSamplingGRPOTrainer(
         model=model,
-        tokenizer=tok,
+        processing_class=tok,
         args=config,
         train_dataset=dataset,
         reward_funcs=[reward_fn],

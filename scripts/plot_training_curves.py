@@ -3,6 +3,8 @@ Parse cotrain_v2 W&B output.log and generate training curve PNGs for submission.
 Outputs: docs/plots/reward_curve.png, docs/plots/loss_curve.png
 """
 import ast
+import glob
+import os
 from pathlib import Path
 
 import matplotlib
@@ -11,7 +13,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
-LOG = Path(__file__).parent.parent / "wandb/run-20260425_031047-w9osws3o/files/output.log"
+_wandb_root = Path(__file__).parent.parent / "wandb"
+_candidate = os.environ.get("WANDB_RUN_DIR", "")
+if _candidate and Path(_candidate).exists():
+    LOG = Path(_candidate) / "files/output.log"
+else:
+    _logs = sorted(glob.glob(str(_wandb_root / "run-*/files/output.log")), key=os.path.getmtime)
+    LOG = Path(_logs[-1]) if _logs else _wandb_root / "run-20260425_031047-w9osws3o/files/output.log"
+print(f"[plot] Using log: {LOG}")
 OUT = Path(__file__).parent.parent / "docs/plots"
 OUT.mkdir(parents=True, exist_ok=True)
 

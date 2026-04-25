@@ -1435,10 +1435,3 @@ ALL_TASKS: list[Task] = [
     OBFUS_1, OBFUS_2, OBFUS_3, OBFUS_4, OBFUS_5,
 ]
 
-TASKS_BY_ID: dict[str, Task] = {t["task_id"]: t for t in ALL_TASKS}
-
-TASKS_BY_DIFFICULTY: dict[str, list[Task]] = {
-    "easy": [t for t in ALL_TASKS if t["difficulty"] == "easy"],
-    "medium": [t for t in ALL_TASKS if t["difficulty"] == "medium"],
-    "hard": [t for t in ALL_TASKS if t["difficulty"] == "hard"],
-}

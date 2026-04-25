@@ -8,17 +8,6 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-HACK_LABELS = frozenset([
-    "test_override",
-    "file_leak",
-    "subprocess_escape",
-    "conftest_tamper",
-    "eval_injection",
-    "timer_bypass",
-    "gradient_hardcode",
-    "env_var_injection",
-])
-
 Verdict = Literal["allow", "flag", "block"]
 
 

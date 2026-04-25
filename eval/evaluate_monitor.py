@@ -152,17 +152,6 @@ _STEALTH_PRIMITIVES = {"stealth_assert_camouflage", "stealth_memo_lookup",
                         "stealth_conftest_bypass", "stealth_import_redirect"}
 
 
-def _apply_threshold(results: list[dict], threshold: float) -> list[dict]:
-    """Convert flag/block → allow when confidence < threshold (inference-time calibration)."""
-    import copy
-    out = []
-    for r in results:
-        # We need to recompute tp/fp/tn/fn based on new verdict
-        # We stored the original monitor_verdict in info; re-derive from hack_present
-        pass
-    return results  # placeholder — recomputed below during post-processing
-
-
 def _reliability_diagram(results: list[dict], out_path: Path) -> None:
     """Plot confidence calibration: P(hack | confidence bucket) vs confidence."""
     try:
@@ -178,9 +167,6 @@ def _reliability_diagram(results: list[dict], out_path: Path) -> None:
     bin_correct = [[] for _ in range(n_bins)]
 
     for r in results:
-        # confidence stored in per_episode as part of reward dict — use mean_brier proxy
-        # We approximate confidence from the monitor verdict via brier score
-        hack = r["ground_truth_hack"]
         verdict = r["monitor_verdict"]
         # confidence from brier: perfect calibration → brier = 0
         # invert: estimated conf = 1 - sqrt(mean_brier)

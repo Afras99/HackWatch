@@ -592,14 +592,12 @@ def load_model(model_name: str, max_seq_len: int = 4096):  # noqa: C901
     # ────────────────────────────────────────────────────────────────────────
 
     # ── Standard HF + PEFT path (active) ────────────────────────────────────
-    import yaml  # type: ignore[import]
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from peft import LoraConfig, TaskType, get_peft_model
+    from training.config import lora_cfg
 
-    _lora_cfg: dict = yaml.safe_load(
-        (_SIGNALS_PATH.parent.parent / "training" / "configs" / "grpo_base.yaml").read_text()
-    ).get("lora", {})
+    _lora_cfg = lora_cfg()
 
     tok = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     if tok.pad_token is None:
@@ -756,12 +754,11 @@ class MonitorTrainer:
             dataset: Prompt dataset from ``_build_dataset()``.
             reward_fn: Reward callable from ``_build_reward_fn()``.
         """
-        import yaml  # type: ignore[import]
         from trl import GRPOConfig  # type: ignore[import]
+        from training.config import grpo_cfg
         from training.dynamic_grpo import DynamicSamplingGRPOTrainer
 
-        _cfg_path = Path(__file__).parent / "configs" / "grpo_base.yaml"
-        _cfg: dict = yaml.safe_load(_cfg_path.read_text()).get("grpo", {})
+        _cfg = grpo_cfg()
 
         # self.* attrs from __init__ (set by Optuna or CLI) override yaml values.
         # All other GRPOConfig fields come from grpo_base.yaml — edit that file,

@@ -168,14 +168,12 @@ class CoTrainer:
             dataset: UCB-weighted message-list prompt dataset.
             reward_fn: Env-backed reward function callable.
         """
-        import yaml  # type: ignore[import]
-        from pathlib import Path
         from trl import GRPOConfig  # type: ignore[import]
+        from training.config import grpo_cfg
         from training.dynamic_grpo import DynamicSamplingGRPOTrainer
         from transformers import TrainerCallback  # type: ignore[import]
 
-        _cfg_path = Path(__file__).parent / "configs" / "grpo_base.yaml"
-        _cfg: dict = yaml.safe_load(_cfg_path.read_text()).get("grpo", {})
+        _cfg = grpo_cfg()
 
         report = "none" if self.no_wandb else _cfg.get("report_to", "wandb")
         monitor_cfg = GRPOConfig(
@@ -267,13 +265,11 @@ class CoTrainer:
             log.info("HACKWATCH_SKIP_WORKER set — skipping worker training phase")
             return
 
-        import yaml  # type: ignore[import]
-        from pathlib import Path
         from unsloth import FastLanguageModel  # type: ignore[import]
         from trl import GRPOConfig, GRPOTrainer  # type: ignore[import]
+        from training.config import grpo_cfg
 
-        _cfg_path = Path(__file__).parent / "configs" / "grpo_base.yaml"
-        _cfg: dict = yaml.safe_load(_cfg_path.read_text()).get("grpo", {})
+        _cfg = grpo_cfg()
 
         log.info(f"Loading worker from {self.worker_model}")
         worker_model_obj, worker_tok = FastLanguageModel.from_pretrained(

@@ -78,17 +78,18 @@ def _make_prompt(obs: dict) -> str:
 
 
 def _parse_verdict(text: str) -> dict:
-    m = re.search(r'\{[^}]+\}', text, re.DOTALL)
-    if m:
+    idx = text.find('{')
+    if idx >= 0:
         try:
-            d = json.loads(m.group())
-            verdict = d.get("verdict", "allow")
-            if verdict not in ("allow", "flag", "block"):
-                verdict = "allow"
-            return {"verdict": verdict,
-                    "confidence": max(0.0, min(1.0, float(d.get("confidence", 0.5)))),
-                    "reasoning": str(d.get("reasoning", ""))}
-        except (json.JSONDecodeError, ValueError):
+            d, _ = json.JSONDecoder().raw_decode(text, idx)
+            if isinstance(d, dict):
+                verdict = d.get("verdict", "allow")
+                if verdict not in ("allow", "flag", "block"):
+                    verdict = "allow"
+                return {"verdict": verdict,
+                        "confidence": max(0.0, min(1.0, float(d.get("confidence", 0.5)))),
+                        "reasoning": str(d.get("reasoning", ""))}
+        except (json.JSONDecodeError, ValueError, KeyError):
             pass
     return {"verdict": "allow", "confidence": 0.5, "reasoning": "parse_error"}
 

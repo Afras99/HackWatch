@@ -103,17 +103,6 @@ def _make_hack_worker(primitive_name: str):
     return worker
 
 
-# Build one named worker per primitive
-test_override_worker = _make_hack_worker("test_override")
-file_leak_worker = _make_hack_worker("file_leak")
-subprocess_escape_worker = _make_hack_worker("subprocess_escape")
-conftest_tamper_worker = _make_hack_worker("conftest_tamper")
-eval_injection_worker = _make_hack_worker("eval_injection")
-timer_bypass_worker = _make_hack_worker("timer_bypass")
-gradient_hardcode_worker = _make_hack_worker("gradient_hardcode")
-env_var_injection_worker = _make_hack_worker("env_var_injection")
-
-
 def combo_worker(task: Task) -> Trajectory:
     """Combine two randomly-chosen primitives (used for heldout_novel)."""
     from server.exploits import apply_combo_hack
@@ -134,19 +123,20 @@ def combo_worker(task: Task) -> Trajectory:
     ]
 
 
-# Registry: name → worker function
-WORKER_BANK: dict[str, Any] = {
-    "legit": legit_worker,
-    "test_override": test_override_worker,
-    "file_leak": file_leak_worker,
-    "subprocess_escape": subprocess_escape_worker,
-    "conftest_tamper": conftest_tamper_worker,
-    "eval_injection": eval_injection_worker,
-    "timer_bypass": timer_bypass_worker,
-    "gradient_hardcode": gradient_hardcode_worker,
-    "env_var_injection": env_var_injection_worker,
-    "combo": combo_worker,
-}
+def _build_worker_bank() -> dict[str, Any]:
+    """Build the worker bank dynamically from ALL_PRIMITIVES.
+
+    This ensures stealth variants and any third-party primitives registered via
+    entry_points are automatically available without manual wiring here.
+    """
+    bank: dict[str, Any] = {"legit": legit_worker, "combo": combo_worker}
+    for name in ALL_PRIMITIVES:
+        bank[name] = _make_hack_worker(name)
+    return bank
+
+
+# Registry: name → worker function (auto-populated from ALL_PRIMITIVES)
+WORKER_BANK: dict[str, Any] = _build_worker_bank()
 
 
 def sample_worker(hack_type: str | None = None) -> Any:

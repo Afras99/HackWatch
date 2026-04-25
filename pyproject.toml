@@ -36,6 +36,11 @@ dev = [
     "httpx>=0.27.0",
 ]
 
+# Third-party packages can declare exploit primitives here:
+#   [project.entry-points."hackwatch.exploits"]
+#   my_primitive = "mypkg.exploits:my_primitive_fn"
+# They will be auto-registered in ALL_PRIMITIVES at import time.
+
 [tool.hatch.build.targets.wheel]
 packages = ["hackwatch", "server"]
 

@@ -40,6 +40,18 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
+def _is_ampere_or_newer() -> bool:
+    """Return True if the GPU supports bf16 (Ampere / CUDA compute ≥ 8.0)."""
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return False
+        major, _ = torch.cuda.get_device_capability()
+        return major >= 8
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Hack signal config — single source of truth for all regex patterns,
 # exploit names, and reasoning keywords.
@@ -807,8 +819,9 @@ class MonitorTrainer:
             max_steps=self.max_steps,
             report_to="none" if self.no_wandb else _cfg.get("report_to", "wandb"),
             save_steps=50,
-            bf16=False,
-            fp16=True,
+            bf16=_is_ampere_or_newer(),
+            fp16=not _is_ampere_or_newer(),
+            gradient_checkpointing=True,
             optim="adamw_torch_fused",
             # HPO-tunable params: self.* wins over yaml when explicitly set
             learning_rate=self.learning_rate if self.learning_rate is not None else _cfg.get("learning_rate", 1.05e-5),

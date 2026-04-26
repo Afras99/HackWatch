@@ -18,11 +18,11 @@ lora:
 
 grpo:
   output_dir: "./runs/monitor_v1"
-  per_device_train_batch_size: 2
-  gradient_accumulation_steps: 4
-  num_generations: 6
-  max_completion_length: 128
-  generation_batch_size: 6    # must equal num_generations (TRL 1.2+ requirement)
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 2
+  num_generations: 4
+  max_completion_length: 48   # verdicts are ~28 tokens; 48 is safe headroom
+  generation_batch_size: 4    # must equal num_generations (TRL 1.2+ requirement)
   beta: 0.051                 # KL penalty — do NOT set below 0.01 (mode collapse risk)
   learning_rate: 1.05e-5      # Optuna best (gpu trial #1)
   warmup_steps: 30            # ~10% of 300 steps (warmup_ratio removed in TRL 1.2)

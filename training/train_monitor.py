@@ -302,6 +302,15 @@ def build_env_reward_fn(env_url: str):
         f1        = 2 * precision * recall / max(1e-9, precision + recall)
         fpr       = fp / max(1, fp + tn)
 
+        # Key per-batch stdout metrics (one line, always visible in logs)
+        log.info(
+            f"[reward] step={_call_count[0]:04d} | "
+            f"mean={mean_reward:.3f} | F1={f1:.3f} | "
+            f"P={precision:.3f} R={recall:.3f} | "
+            f"TP={tp} FP={fp} TN={tn} FN={fn} | "
+            f"env_hit={sum(1 for r in env_rewards if r is not None)}/{len(env_rewards)}"
+        )
+
         # ---- Per-component telemetry (key metric: reasoning std within groups) ----
         def _mean(xs: list[float]) -> float:
             return sum(xs) / len(xs) if xs else 0.0

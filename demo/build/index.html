@@ -1726,48 +1726,6 @@ function App() {
             KL stayed under 0.55 throughout — no collapse.
           </div>
         </div>
-        <div className="logs-section">
-          <div className="logs-section-title">// all training runs</div>
-          <table className="run-hist-table">
-            <thead>
-              <tr><th>run</th><th>steps</th><th>final reward</th><th>final KL</th><th>notes</th></tr>
-            </thead>
-            <tbody>
-              {[
-                ['monitor_v1',  499,  0.5608, 0.0249,  'Early run, Unsloth, low reward',            ''],
-                ['monitor_v2',  200,  1.0000, 0.0195,  'reward=1.0 → reward hacking (overfit)',     'tag-bad'],
-                ['monitor_v3',  400,  1.0000, 0.0108,  'Same issue',                                'tag-bad'],
-                ['monitor_v4',  400,  1.0000, 0.0136,  'Same issue',                                'tag-bad'],
-                ['monitor_v5',  400,  1.0000, 0.0333,  'Same issue',                                'tag-bad'],
-                ['monitor_v6',  400,  1.0000, 0.0366,  'Same issue',                                'tag-bad'],
-                ['monitor_v7',  200,  1.0000, 0.0367,  'Same issue',                                'tag-bad'],
-                ['monitor_v8',  400,  0.7991, 0.0551,  'First real learning signal, no overfit',    'tag-ok'],
-                ['monitor_v9',  800,  0.8190, 0.2189,  'Longer run, KL starting to rise',           ''],
-                ['monitor_v10', 100,  0.5909, 61205,   'KL explosion — Unsloth bug',                'tag-crash'],
-                ['monitor_v11', 300,  0.4909, 0.0088,  'Reward too low, config issue',              ''],
-                ['monitor_v12', 149,  0.8231, 0.1449,  'Crashed at step 160 (env 404)',             ''],
-                ['monitor_colab',150, 0.2712, 97.597,  'KL explosion on Colab',                    'tag-crash'],
-                ['cotrain_v1',  100,  0.1531, 0.0002,  'Co-training, too short',                    ''],
-                ['cotrain_v2',  300,  0.7960, 0.2431,  '✅ Best run — F1=0.970',                    'tag-ok'],
-              ].map(([run,steps,reward,kl,note,tag])=>
-                React.createElement('tr',{key:run,className:run==='cotrain_v2'?'best-run':''},
-                  React.createElement('td',null,run),
-                  React.createElement('td',null,steps),
-                  React.createElement('td',null,reward.toFixed(4)),
-                  React.createElement('td',null,typeof kl==='number'&&kl>100?kl.toFixed(0):kl.toFixed(4)),
-                  React.createElement('td',null,
-                    tag ? React.createElement('span',{className:tag},note) : note
-                  )
-                )
-              )}
-            </tbody>
-          </table>
-          <div className="log-note">
-            <strong>v2–v7 reward=1.0</strong> is not good — the model collapsed to always outputting one verdict and gaming the reward.
-            Fixed by adjusting beta and the exploit sampling ratio. &nbsp;·&nbsp;
-            <strong>v10 / colab</strong> KL explosions caused by Unsloth hidden-state bug. Fixed by switching to standard HF + PEFT.
-          </div>
-        </div>
       </div>
 
       {/* FOOTER — only visible on Try It page */}

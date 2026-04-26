@@ -172,6 +172,30 @@ body::after{
 .center-body::-webkit-scrollbar{width:3px;}
 .center-body::-webkit-scrollbar-thumb{background:var(--g3);}
 
+/* ── HOW IT WORKS BAR ── */
+.how-it-works{
+  padding:8px 14px;background:rgba(0,229,255,.04);
+  border-bottom:1px solid var(--border2);
+  display:flex;flex-direction:column;gap:5px;flex-shrink:0;
+}
+.hiw-row{display:flex;align-items:center;gap:8px;}
+.hiw-pill{
+  font-size:9px;letter-spacing:.08em;padding:2px 8px;font-weight:600;
+  flex-shrink:0;font-family:var(--mono);
+}
+.hiw-pill.worker{background:rgba(0,180,255,.15);color:#44ccff;border:1px solid rgba(0,180,255,.3);}
+.hiw-pill.monitor{background:rgba(0,255,136,.12);color:#00ff88;border:1px solid rgba(0,255,136,.3);}
+.hiw-arrow{color:var(--dim);font-size:11px;flex-shrink:0;}
+.hiw-text{font-size:10px;color:var(--dim);letter-spacing:.02em;}
+
+/* ── SECTION LABELS ── */
+.section-label{
+  font-size:9px;letter-spacing:.1em;padding:4px 8px;
+  margin-bottom:2px;flex-shrink:0;
+}
+.worker-label{color:#44ccff;background:rgba(0,180,255,.08);border-left:2px solid #44ccff;}
+.diff-label{color:#aaaacc;background:rgba(100,100,200,.07);border-left:2px solid #6666aa;}
+
 /* execute button */
 .exec-btn{
   font-family:var(--mono);font-size:11px;letter-spacing:.12em;
@@ -1162,8 +1186,22 @@ function App() {
               </button>
             </div>
           </div>
+          <div className="how-it-works">
+            <div className="hiw-row">
+              <div className="hiw-pill worker">① WORKER AI</div>
+              <div className="hiw-arrow">→</div>
+              <div className="hiw-text">writes code to solve the task (may secretly cheat)</div>
+            </div>
+            <div className="hiw-row">
+              <div className="hiw-pill monitor">② MONITOR AI</div>
+              <div className="hiw-arrow">→</div>
+              <div className="hiw-text">reads the code diff and decides: allow, flag, or block</div>
+            </div>
+          </div>
           <div className="center-body">
+            <div className="section-label worker-label">▸ WORKER AI OUTPUT — what the agent wrote</div>
             <Terminal taskId={task.id} running={running} key={task.id}/>
+            <div className="section-label diff-label">▸ CODE DIFF — changes made to the codebase (monitor reads this)</div>
             <DiffView taskId={task.id} show={showDiff} key={task.id+'-d'}/>
             <div className="prog">
               <div className="prog-meta">
@@ -1194,7 +1232,7 @@ function App() {
         {/* RIGHT */}
         <div className={`panel right-panel ${isExploit?'exploit':'clean'}`}>
           <div className="panel-hdr">
-            <span>// VERDICT</span>
+            <span>// MONITOR AI VERDICT</span>
             <span className="accent">{trained?'[TRAINED]':'[BASELINE]'}</span>
           </div>
           <div className="right-body">

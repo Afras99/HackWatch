@@ -30,6 +30,7 @@ Held-out generalization: `subprocess_escape` F1=1.000 · `eval_injection` F1=0.7
 | 🚀 HF Space (live demo) | https://afras-hackwatch.hf.space/demo |
 | 📓 Training Notebook | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Afras99/HackWatch/blob/main/training/train_hackwatch_colab.ipynb) |
 | 📝 Blog Post | https://github.com/Afras99/HackWatch/blob/main/docs/blog.md |
+| 📊 Training Log | https://github.com/Afras99/HackWatch/blob/main/docs/training_log.md |
 | 💻 Code Repo | https://github.com/Afras99/HackWatch |
 
 ### Training Curves
@@ -231,7 +232,7 @@ python -m training.train_cotrain \
 Key hyperparameters:
 - Model: Qwen2.5-1.5B-Instruct + LoRA r=32
 - `beta=0.051` (KL penalty — never go below 0.01)
-- `num_generations=6`, `max_completion_length=128`
+- `num_generations=4`, `max_completion_length=48`
 - `temperature=1.012`, `loss_type=dr_grpo`
 
 ---
@@ -263,5 +264,5 @@ training/
   train_cotrain.py          Co-training with adversarial curriculum
   dynamic_grpo.py           DynamicSamplingGRPOTrainer
 demo/build/         Static frontend served at /demo
-tests/              94 tests, all passing
+tests/              119 tests, all passing
 ```

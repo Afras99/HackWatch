@@ -644,15 +644,23 @@ def load_model(model_name: str, max_seq_len: int = 4096):  # noqa: C901
 
     _lora_cfg = lora_cfg()
 
-    tok = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    from huggingface_hub import snapshot_download
+
+    print(f"Downloading {model_name}...")
+    local_path = snapshot_download(model_name)
+    print(f"✓ Model cached at {local_path}")
+
+    tok = AutoTokenizer.from_pretrained(local_path, trust_remote_code=True)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
 
-    dtype = torch.float16  # V100 = CUDA 7.0: no bf16 support
+    _bf16 = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+    dtype = torch.bfloat16 if _bf16 else torch.float16
 
+    print(f"Loading weights (dtype={'bf16' if _bf16 else 'fp16'})...")
     model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=dtype,
+        local_path,
+        dtype=dtype,
         device_map="auto",
         trust_remote_code=True,
     )

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from hackwatch.models import MonitorAction
@@ -36,6 +36,10 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     async def root():
+        # Serve index.html directly — HF Space iframes block cross-origin redirects
+        demo_index = Path(__file__).parent.parent / "demo" / "build" / "index.html"
+        if demo_index.exists():
+            return FileResponse(str(demo_index), media_type="text/html")
         return RedirectResponse(url="/demo")
 
     @app.post("/reset")

@@ -226,3 +226,9 @@ logs/
 
 # Eval result artifacts (generated, not source)
 eval/results_*.json
+
+# HPO database
+hpo.db
+
+# Node modules
+node_modules/

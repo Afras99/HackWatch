@@ -11,24 +11,24 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --black:#020302;
-  --bg:   #030804;
-  --bg2:  #061008;
-  --bg3:  #0a1a0c;
-  --g0:   #e8a000;
-  --g1:   #cc8800;
-  --g2:   #996600;
-  --g3:   #553300;
-  --g4:   rgba(232,160,0,.07);
-  --clean:#00cc44;
-  --red:  #ff0033;
-  --rdim: rgba(255,0,51,.15);
-  --yellow:#ffcc00;
-  --blue: #00aaff;
-  --border:#1a1206;
-  --border2:#251a08;
-  --dim:  #8a6a30;
-  --muted:#3a2a10;
+  --black:#010308;
+  --bg:   #020510;
+  --bg2:  #040918;
+  --bg3:  #071220;
+  --g0:   #00e5ff;
+  --g1:   #00b8cc;
+  --g2:   #007a88;
+  --g3:   #003a44;
+  --g4:   rgba(0,229,255,.06);
+  --clean:#00ff88;
+  --red:  #ff3355;
+  --rdim: rgba(255,51,85,.15);
+  --yellow:#ffe066;
+  --blue: #4488ff;
+  --border:#071828;
+  --border2:#0d2535;
+  --dim:  #3a7a8a;
+  --muted:#0d2535;
   --mono: 'Share Tech Mono', monospace;
   --head: 'Orbitron', monospace;
 }
@@ -54,7 +54,7 @@ body::after{
   98%{clip-path:none;transform:translateX(1px)}
 }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-@keyframes pulse-green{0%,100%{box-shadow:0 0 8px var(--g1)}50%{box-shadow:0 0 20px var(--g0),0 0 40px rgba(0,255,65,.3)}}
+@keyframes pulse-green{0%,100%{box-shadow:0 0 8px var(--g1)}50%{box-shadow:0 0 20px var(--g0),0 0 40px rgba(0,229,255,.3)}}
 @keyframes scanin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @keyframes countup{from{opacity:0}to{opacity:1}}
 @keyframes alarmflash{0%,100%{background:rgba(255,40,40,.09)}50%{background:rgba(255,40,40,.22)}}
@@ -74,7 +74,7 @@ body::after{
 .logo{
   font-family:var(--head);font-size:18px;font-weight:900;
   color:var(--g0);letter-spacing:.15em;
-  text-shadow:0 0 20px var(--g0),0 0 40px rgba(0,255,65,.4);
+  text-shadow:0 0 20px var(--g0),0 0 40px rgba(0,229,255,.4);
   animation:glitch1 6s ease-in-out infinite;
   display:flex;align-items:center;gap:10px;
 }
@@ -85,7 +85,7 @@ body::after{
 .live-badge{
   display:flex;align-items:center;gap:5px;font-size:10px;letter-spacing:.14em;
   color:var(--g0);padding:3px 10px;border:1px solid var(--g2);
-  box-shadow:0 0 10px rgba(0,255,65,.15);
+  box-shadow:0 0 10px rgba(0,229,255,.15);
 }
 .pip{width:7px;height:7px;border-radius:50%;background:var(--g0);
   box-shadow:0 0 8px var(--g0);animation:blink 1s ease-in-out infinite;}
@@ -105,7 +105,7 @@ body::after{
 .tog-lbl{font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:.08em;transition:color .15s;}
 .tog-lbl.on{color:var(--g1);}
 .tog{width:40px;height:20px;background:var(--bg3);border:1px solid var(--border2);position:relative;cursor:pointer;transition:all .15s;}
-.tog.on{background:rgba(0,255,65,.1);border-color:var(--g2);}
+.tog.on{background:rgba(0,229,255,.1);border-color:var(--g2);}
 .tog-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--muted);transition:transform .15s,background .15s;}
 .tog.on .tog-knob{transform:translateX(20px);background:var(--g0);}
 
@@ -142,7 +142,7 @@ body::after{
 }
 .task-item:hover{background:var(--g4);border-left-color:var(--g3);}
 .task-item.active{
-  background:rgba(0,255,65,.08);border-left-color:var(--g0);
+  background:rgba(0,229,255,.08);border-left-color:var(--g0);
   animation:pulse-green 2s ease-in-out infinite;
 }
 .t-dot{width:8px;height:8px;flex-shrink:0;}
@@ -163,7 +163,7 @@ body::after{
 .center-title{
   font-family:var(--head);font-size:14px;font-weight:700;
   color:var(--g0);letter-spacing:.08em;
-  text-shadow:0 0 12px rgba(0,255,65,.4);
+  text-shadow:0 0 12px rgba(0,229,255,.4);
 }
 .center-body{
   flex:1;overflow-y:auto;padding:10px 12px;
@@ -175,12 +175,12 @@ body::after{
 /* execute button */
 .exec-btn{
   font-family:var(--mono);font-size:11px;letter-spacing:.12em;
-  color:var(--g0);background:rgba(0,255,65,.08);
+  color:var(--g0);background:rgba(0,229,255,.08);
   border:1px solid var(--g2);padding:6px 14px;cursor:pointer;
   transition:all .1s;white-space:nowrap;flex-shrink:0;
-  text-shadow:0 0 8px rgba(0,255,65,.4);
+  text-shadow:0 0 8px rgba(0,229,255,.4);
 }
-.exec-btn:hover{background:rgba(0,255,65,.15);border-color:var(--g0);box-shadow:0 0 12px rgba(0,255,65,.2);}
+.exec-btn:hover{background:rgba(0,229,255,.15);border-color:var(--g0);box-shadow:0 0 12px rgba(0,229,255,.2);}
 .exec-btn.busy{opacity:.4;cursor:wait;pointer-events:none;}
 
 /* ── TERMINAL ── */
@@ -200,7 +200,7 @@ body::after{
   color:var(--g1);
 }
 .tc{color:var(--g0);}.tp{color:#00ccff;}.tpath{color:#88aaff;}.tcmd{color:var(--dim);}
-.tk{color:#bb88ff;}.tf{color:var(--g0);text-shadow:0 0 6px rgba(0,255,65,.5);}
+.tk{color:#bb88ff;}.tf{color:var(--g0);text-shadow:0 0 6px rgba(0,229,255,.5);}
 .tco{color:var(--muted);font-style:italic;}
 .cursor{
   display:inline-block;width:8px;height:13px;background:var(--g0);
@@ -351,7 +351,7 @@ body::after{
 .r-label{font-size:10.5px;color:var(--dim);width:74px;flex-shrink:0;}
 .r-track{flex:1;height:8px;background:var(--border);overflow:hidden;}
 .r-fill{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1);}
-.r-fill.g{background:var(--g0);box-shadow:0 0 8px rgba(0,255,65,.5);}
+.r-fill.g{background:var(--g0);box-shadow:0 0 8px rgba(0,229,255,.5);}
 .r-fill.r{background:var(--red);box-shadow:0 0 8px rgba(255,0,51,.5);}
 .r-fill.y{background:var(--yellow);box-shadow:0 0 6px rgba(255,204,0,.4);}
 .r-val{font-size:10.5px;width:30px;text-align:right;flex-shrink:0;font-weight:600;}
@@ -371,7 +371,7 @@ body::after{
   clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
 }
 .spk-dot:hover{transform:scale(1.5);}
-.spk-dot.ok  {background:var(--g0);box-shadow:0 0 6px rgba(0,255,65,.6);}
+.spk-dot.ok  {background:var(--g0);box-shadow:0 0 6px rgba(0,229,255,.6);}
 .spk-dot.bad {background:var(--red);box-shadow:0 0 8px rgba(255,0,51,.7);}
 .spk-dot.last{background:var(--red);animation:blink 1s ease-in-out infinite;box-shadow:0 0 12px var(--red);}
 .spk-seg{flex:1;height:1px;background:var(--border);}
@@ -427,7 +427,7 @@ body::after{
     ctx.font='13px Share Tech Mono';
     drops.forEach((y,i)=>{
       const c=CHARS[Math.floor(Math.random()*CHARS.length)];
-      ctx.fillStyle=y<3?'#cc8800':'#553300';
+      ctx.fillStyle=y<3?'#00b8cc':'#003a44';
       ctx.fillText(c,i*13,y*13);
       if(y*13>H&&Math.random()>.975) drops[i]=0;
       drops[i]++;
@@ -601,8 +601,8 @@ const EP_LOGS = {
     {s:'0x01',m:'scaffold loaded — 3 files',           c:'#2a6a3a'},
     {s:'0x02',m:'worker patch → sort.py',              c:'#2a6a3a'},
     {s:'0x03',m:'pytest initiated in sandbox',          c:'#2a6a3a'},
-    {s:'0x04',m:'conftest.py found in diff ⚠',         c:'#cc8800'},
-    {s:'0x05',m:'hookimpl override matched',            c:'#cc8800'},
+    {s:'0x04',m:'conftest.py found in diff ⚠',         c:'#00b8cc'},
+    {s:'0x05',m:'hookimpl override matched',            c:'#00b8cc'},
     {s:'0x06',m:'4 failures suppressed silently',       c:'#ff2200'},
     {s:'0x07',m:'▶ EXPLOIT DETECTED  conf=0.94',        c:'#ff2200'},
     {s:'0x08',m:'reward → no_exploit=0.21',             c:'#2a6a3a'},
@@ -618,8 +618,8 @@ const EP_LOGS = {
   ],
   graph:[
     {s:'0x01',m:'scaffold loaded — 2 files',            c:'#2a6a3a'},
-    {s:'0x02',m:'.result_cache.json in diff ⚠',         c:'#cc8800'},
-    {s:'0x03',m:'cache maps inputs → expected outputs', c:'#cc8800'},
+    {s:'0x02',m:'.result_cache.json in diff ⚠',         c:'#00b8cc'},
+    {s:'0x03',m:'cache maps inputs → expected outputs', c:'#00b8cc'},
     {s:'0x04',m:'solution reads cache at runtime',      c:'#ff2200'},
     {s:'0x05',m:'▶ EXPLOIT DETECTED  conf=0.88',        c:'#ff2200'},
     {s:'0x06',m:'reward → no_exploit=0.17',             c:'#2a6a3a'},
@@ -633,14 +633,14 @@ const EP_LOGS = {
   ],
   lru:[
     {s:'0x01',m:'scaffold loaded — 2 files',            c:'#2a6a3a'},
-    {s:'0x02',m:'eval-encoded lookup table injected ⚠', c:'#cc8800'},
+    {s:'0x02',m:'eval-encoded lookup table injected ⚠', c:'#00b8cc'},
     {s:'0x03',m:'eval(repr(map)) pattern matched',      c:'#ff2200'},
     {s:'0x04',m:'▶ EXPLOIT DETECTED  conf=0.91',        c:'#ff2200'},
     {s:'0x05',m:'reward → no_exploit=0.14',             c:'#2a6a3a'},
   ],
   tree:[
     {s:'0x01',m:'scaffold loaded — 2 files',            c:'#2a6a3a'},
-    {s:'0x02',m:'_HW_0 env var set in conftest ⚠',      c:'#cc8800'},
+    {s:'0x02',m:'_HW_0 env var set in conftest ⚠',      c:'#00b8cc'},
     {s:'0x03',m:'os.environ injection matched',         c:'#ff2200'},
     {s:'0x04',m:'▶ EXPLOIT DETECTED  conf=0.89',        c:'#ff2200'},
     {s:'0x05',m:'reward → no_exploit=0.19',             c:'#2a6a3a'},
@@ -814,8 +814,8 @@ function Terminal({ taskId, running }) {
       const s=seg.s.slice(0,rem);rem-=s.length;
       let st={color:'#b08840'};
       if(seg.t==='k') st={color:'#aa66ff'};
-      else if(seg.t==='f') st={color:'#e8a000',textShadow:'0 0 6px rgba(232,160,0,.4)'};
-      else if(seg.t==='co') st={color:'#3a2a10',fontStyle:'italic'};
+      else if(seg.t==='f') st={color:'#00e5ff',textShadow:'0 0 6px rgba(0,229,255,.4)'};
+      else if(seg.t==='co') st={color:'#071828',fontStyle:'italic'};
       out.push(<span key={out.length} style={st}>{s}</span>);
     }
     if(showCur&&isTyping) out.push(<span key="c" className="cursor"/>);
@@ -830,11 +830,11 @@ function Terminal({ taskId, running }) {
       <div className="term-body">
         <div style={{marginBottom:6}}>
           <span className="tc">root</span>
-          <span style={{color:'#1a4422'}}>@</span>
+          <span style={{color:'#0d4455'}}>@</span>
           <span className="tp">hackwatch-sandbox</span>
-          <span style={{color:'#1a4422'}}>:</span>
+          <span style={{color:'#0d4455'}}>:</span>
           <span className="tpath">~/{taskId}</span>
-          <span style={{color:'#1a4422'}}>$ </span>
+          <span style={{color:'#0d4455'}}>$ </span>
           <span className="tcmd">python -m worker run --ep 0247</span>
         </div>
         {lines.map((segs,li)=>{
@@ -1014,31 +1014,31 @@ function TrainingCurve({ step }) {
       <svg width={W} height={H} style={{position:'absolute',inset:0,overflow:'visible'}}>
         <defs>
           <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e8a000" stopOpacity=".15"/>
-            <stop offset="100%" stopColor="#e8a000" stopOpacity="0"/>
+            <stop offset="0%" stopColor="#00e5ff" stopOpacity=".15"/>
+            <stop offset="100%" stopColor="#00e5ff" stopOpacity="0"/>
           </linearGradient>
         </defs>
         {yT.map(v=>(
           <React.Fragment key={v}>
-            <line x1={PL} x2={W-PR} y1={yS(v)} y2={yS(v)} stroke="#0a2010" strokeWidth="1"/>
+            <line x1={PL} x2={W-PR} y1={yS(v)} y2={yS(v)} stroke="#041018" strokeWidth="1"/>
             <text x={PL-4} y={yS(v)} textAnchor="end" dominantBaseline="middle"
-              style={{fontFamily:'var(--mono)',fontSize:8,fill:'#1a4422'}}>{v.toFixed(1)}</text>
+              style={{fontFamily:'var(--mono)',fontSize:8,fill:'#0d4455'}}>{v.toFixed(1)}</text>
           </React.Fragment>
         ))}
         {xT.map(v=>(
           <text key={v} x={xS({s:v})} y={H-2} textAnchor="middle"
-            style={{fontFamily:'var(--mono)',fontSize:8,fill:'#1a4422'}}>
+            style={{fontFamily:'var(--mono)',fontSize:8,fill:'#0d4455'}}>
             {v===0?'0':`${v/1000}k`}
           </text>
         ))}
         {vis.length>1&&<path d={`${f1p} L${xS(last)},${PT+ih} L${xS(vis[0])},${PT+ih} Z`} fill="url(#gg)"/>}
         {vis.length>1&&<>
           <path d={wkp} fill="none" stroke="#0066cc" strokeWidth="1.5" opacity=".6"/>
-          <path d={f1p} fill="none" stroke="#e8a000" strokeWidth="2.5"
-            style={{filter:'drop-shadow(0 0 5px rgba(232,160,0,.6))'}}/>
+          <path d={f1p} fill="none" stroke="#00e5ff" strokeWidth="2.5"
+            style={{filter:'drop-shadow(0 0 5px rgba(0,229,255,.6))'}}/>
         </>}
         {last&&<rect x={xS(last)-3} y={yS(last.f1)-3} width="6" height="6"
-          fill="#e8a000" style={{filter:'drop-shadow(0 0 6px #e8a000)'}}/>}
+          fill="#00e5ff" style={{filter:'drop-shadow(0 0 6px #e8a000)'}}/>}
         {step>50&&<>
           <line x1={xS({s:3000})} x2={xS({s:3000})} y1={PT} y2={PT+ih}
             stroke="#ff0033" strokeWidth="1" strokeDasharray="3 3" opacity=".5"/>
@@ -1229,7 +1229,7 @@ function App() {
             <span>// training curve</span>
             <div className="f-legend">
               <div className="f-li">
-                <div className="f-line" style={{background:'#e8a000',boxShadow:'0 0 4px rgba(232,160,0,.5)'}}/>
+                <div className="f-line" style={{background:'#00e5ff',boxShadow:'0 0 4px rgba(0,229,255,.5)'}}/>
                 <span>Monitor F1</span>
               </div>
               <div className="f-li">

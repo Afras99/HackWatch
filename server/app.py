@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from hackwatch.models import MonitorAction
@@ -32,6 +33,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.get("/")
+    async def root():
+        return RedirectResponse(url="/demo")
 
     @app.post("/reset")
     async def reset(body: dict = {}):  # noqa: B006

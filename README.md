@@ -294,25 +294,29 @@ are never seen during training — the monitor must generalize to detect them.
 ## Training
 
 ```bash
-# Day 3: train monitor with scripted workers
+# Start the env server
 uvicorn server.app:app --port 8000 &
+
+# Train the monitor (1.5B, ~400 steps, ~2.5h on A100)
 python -m training.train_monitor \
     --env-url http://localhost:8000 \
-    --model Qwen/Qwen2.5-3B-Instruct \
-    --output-dir ./runs/monitor_v1
+    --model Qwen/Qwen2.5-1.5B-Instruct \
+    --output-dir ./runs/monitor_final \
+    --max-steps 400 \
+    --temperature 1.3
 
-# Day 4: co-train worker + monitor
+# Co-train worker + monitor with adversarial curriculum
 python -m training.train_cotrain \
-    --monitor-checkpoint ./runs/cotrain_v2/monitor/final \
+    --monitor-checkpoint ./runs/monitor_final/final \
     --env-url http://localhost:8000 \
     --output-dir ./runs/cotrain_v3
 ```
 
 Key hyperparameters (do not change `beta`):
-- Model: Qwen2.5-3B-Instruct, LoRA r=32
-- `beta=0.04` (KL penalty — 0.001 causes reward-hacking collapse per Lewis Tunstall)
-- `num_generations=8` for GRPO group advantage
-- `max_completion_length=256`
+- Model: Qwen2.5-1.5B-Instruct, LoRA r=32
+- `beta=0.04` (KL penalty — values below 0.01 collapse diversity)
+- `num_generations=6`, `max_completion_length=128`
+- `temperature=1.3` (prevents entropy collapse)
 
 ---
 

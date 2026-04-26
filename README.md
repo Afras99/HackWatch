@@ -28,7 +28,7 @@ W&B: https://wandb.ai/afrasvellora777-student/hackwatch/runs/w9osws3o
 
 | | Link |
 |---|---|
-| HF Space | https://huggingface.co/spaces/afrasvellora777/hackwatch |
+| HF Space | https://huggingface.co/spaces/Afras/hackwatch |
 | Training Notebook | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Afras99/HackWatch/blob/main/training/train_hackwatch_colab.ipynb) |
 | Blog Post | [docs/blog.md](docs/blog.md) |
 | W&B Training Run | https://wandb.ai/afrasvellora777-student/hackwatch/runs/w9osws3o |

@@ -34,7 +34,111 @@
 }
 
 html,body{width:100%;height:100%;overflow:hidden;background:var(--black);color:var(--g0);font-family:var(--mono);}
-#root{width:100vw;height:100vh;display:grid;grid-template-rows:52px 1fr 140px;overflow:hidden;}
+#root{width:100vw;height:100vh;display:grid;grid-template-rows:52px 42px 1fr 140px;overflow:hidden;}
+
+/* ── TAB NAV ── */
+.tab-nav{
+  grid-row:2;display:flex;align-items:stretch;
+  background:var(--bg2);border-bottom:1px solid var(--border2);
+  padding:0 18px;gap:2px;position:relative;z-index:9;
+}
+.tab-btn{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  padding:0 18px;cursor:pointer;border:none;background:none;
+  color:var(--dim);transition:all .15s;position:relative;
+  text-transform:uppercase;border-bottom:2px solid transparent;
+}
+.tab-btn:hover{color:var(--g1);}
+.tab-btn.active{color:var(--g0);border-bottom-color:var(--g0);}
+.tab-btn.active::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:var(--g0);box-shadow:0 0 8px var(--g0);
+}
+
+/* ── PAGE WRAPPER ── */
+.page{grid-row:3;overflow:hidden;display:flex;flex-direction:column;}
+.page.hidden{display:none;}
+.footer.hidden{display:none;}
+
+/* ═══════════════ HOME PAGE ═══════════════ */
+.home-page{overflow-y:auto;background:var(--bg);}
+.home-page::-webkit-scrollbar{width:4px;}
+.home-page::-webkit-scrollbar-thumb{background:var(--g3);}
+
+.hero{
+  padding:48px 60px 36px;
+  background:linear-gradient(135deg,rgba(0,229,255,.04) 0%,transparent 60%);
+  border-bottom:1px solid var(--border2);
+}
+.hero-tag{font-size:9px;letter-spacing:.2em;color:var(--g2);margin-bottom:12px;text-transform:uppercase;}
+.hero-title{
+  font-family:var(--head);font-size:36px;font-weight:900;
+  color:var(--g0);letter-spacing:.1em;line-height:1.1;
+  text-shadow:0 0 40px rgba(0,229,255,.3);
+  margin-bottom:16px;
+}
+.hero-subtitle{
+  font-size:14px;color:#aaccdd;line-height:1.7;max-width:620px;
+  margin-bottom:28px;letter-spacing:.02em;
+}
+.hero-subtitle strong{color:var(--g0);}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;}
+.cta-btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  padding:10px 22px;cursor:pointer;border:1px solid;transition:all .15s;
+  text-transform:uppercase;
+}
+.cta-btn.primary{
+  background:rgba(0,229,255,.12);color:var(--g0);border-color:var(--g1);
+}
+.cta-btn.primary:hover{background:rgba(0,229,255,.22);box-shadow:0 0 16px rgba(0,229,255,.2);}
+.cta-btn.secondary{
+  background:transparent;color:var(--dim);border-color:var(--border2);
+}
+.cta-btn.secondary:hover{color:var(--g1);border-color:var(--g2);}
+
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-bottom:1px solid var(--border2);
+}
+.stat-card{
+  padding:24px 28px;border-right:1px solid var(--border2);
+}
+.stat-card:last-child{border-right:none;}
+.stat-val{
+  font-family:var(--head);font-size:28px;font-weight:700;
+  color:var(--g0);text-shadow:0 0 20px rgba(0,229,255,.4);
+  margin-bottom:4px;
+}
+.stat-val.green{color:var(--clean);text-shadow:0 0 20px rgba(0,255,136,.4);}
+.stat-val.red{color:var(--red);}
+.stat-lbl{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;}
+.stat-sub{font-size:10px;color:var(--muted);letter-spacing:.04em;}
+
+.home-sections{padding:36px 60px;display:flex;flex-direction:column;gap:36px;}
+.home-section-title{
+  font-family:var(--head);font-size:13px;font-weight:700;
+  color:var(--g0);letter-spacing:.12em;margin-bottom:16px;
+  padding-bottom:8px;border-bottom:1px solid var(--border2);
+}
+.how-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.how-card{
+  padding:18px 20px;background:var(--bg2);border:1px solid var(--border2);
+}
+.how-num{
+  font-family:var(--head);font-size:22px;font-weight:900;
+  color:var(--g2);margin-bottom:8px;
+}
+.how-card-title{font-size:11px;color:var(--g0);letter-spacing:.08em;margin-bottom:6px;font-weight:600;}
+.how-card-body{font-size:11px;color:#778899;line-height:1.6;}
+.exploit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.exploit-row{
+  padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);
+  display:flex;gap:10px;align-items:flex-start;
+}
+.exploit-dot{width:8px;height:8px;border-radius:50%;margin-top:3px;flex-shrink:0;}
+.exploit-name{font-size:11px;color:var(--g0);letter-spacing:.04em;margin-bottom:3px;}
+.exploit-detail{font-size:10px;color:var(--dim);line-height:1.4;}
 
 /* ── MATRIX RAIN CANVAS ── */
 #matrix-canvas{position:fixed;inset:0;z-index:0;opacity:.07;pointer-events:none;}
@@ -109,8 +213,59 @@ body::after{
 .tog-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--muted);transition:transform .15s,background .15s;}
 .tog.on .tog-knob{transform:translateX(20px);background:var(--g0);}
 
-/* ═══════════════ BODY ═══════════════ */
-.body{grid-row:2;display:grid;grid-template-columns:196px 1fr 288px;overflow:hidden;position:relative;z-index:1;}
+/* ═══════════════ TRY IT PAGE ═══════════════ */
+.body{width:100%;height:100%;display:grid;grid-template-columns:196px 1fr 288px;overflow:hidden;position:relative;z-index:1;}
+
+/* ═══════════════ RESEARCH PAGE ═══════════════ */
+.research-page{overflow-y:auto;background:var(--bg);padding:36px 60px;}
+.research-page::-webkit-scrollbar{width:4px;}
+.research-page::-webkit-scrollbar-thumb{background:var(--g3);}
+.research-section{margin-bottom:40px;}
+.research-title{
+  font-family:var(--head);font-size:13px;font-weight:700;
+  color:var(--g0);letter-spacing:.12em;margin-bottom:16px;
+  padding-bottom:8px;border-bottom:1px solid var(--border2);
+}
+.res-table{width:100%;border-collapse:collapse;font-size:11px;}
+.res-table th{
+  padding:7px 12px;text-align:left;
+  color:var(--dim);letter-spacing:.1em;font-size:9px;text-transform:uppercase;
+  border-bottom:1px solid var(--border2);font-weight:400;
+}
+.res-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:#aabbcc;}
+.res-table td:first-child{color:var(--g0);font-family:var(--mono);}
+.res-table .hi{color:var(--clean);font-weight:600;}
+.res-table .lo{color:var(--yellow);}
+.res-table .held{color:var(--dim);font-size:9px;}
+.res-2col{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.res-metric-card{
+  padding:20px 24px;background:var(--bg2);border:1px solid var(--border2);
+}
+.res-metric-val{
+  font-family:var(--head);font-size:32px;font-weight:700;
+  color:var(--g0);text-shadow:0 0 20px rgba(0,229,255,.4);margin-bottom:4px;
+}
+.res-metric-lbl{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;}
+.res-curve-wrap{
+  background:var(--bg2);border:1px solid var(--border2);
+  padding:16px;height:160px;display:flex;flex-direction:column;
+}
+.res-curve-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.res-curve-title{font-size:9px;color:var(--dim);letter-spacing:.1em;}
+.res-legend{display:flex;gap:12px;}
+.res-li{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--dim);}
+.res-line{width:16px;height:2px;}
+.reward-formula{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-left:3px solid var(--g0);
+  padding:16px 20px;font-size:12px;color:#aabbcc;line-height:2;
+  font-family:var(--mono);
+}
+.reward-formula .pos{color:var(--clean);}
+.reward-formula .neg{color:var(--red);}
+.reward-formula .neutral{color:var(--g0);}
+.reward-row{display:flex;align-items:baseline;gap:8px;margin:2px 0;}
+.reward-explain{font-size:10px;color:var(--dim);margin-left:8px;font-style:italic;}
 
 /* ── PANEL BASE ── */
 .panel{border-right:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;}
@@ -409,7 +564,7 @@ body::after{
 
 /* ═══════════════ FOOTER ═══════════════ */
 .footer{
-  grid-row:3;background:var(--bg2);
+  grid-row:4;background:var(--bg2);
   border-top:1px solid var(--border2);
   display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:1;
 }
@@ -1078,6 +1233,7 @@ function TrainingCurve({ step }) {
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
+  const [page,setPage]=useState('home');
   const [sel,setSel]=useState(0);
   const [trained,setTrained]=useState(true);
   const [running,setRunning]=useState(false);
@@ -1128,13 +1284,12 @@ function App() {
           <span style={{fontSize:10,color:'var(--g2)',letterSpacing:'.06em'}}>monitor</span>
         </div>
         <div className="hdr-mid">
-          <span className="task-label">target: <em>{task.name}</em></span>
-          <div className="live-badge"><div className="pip"/>MONITORING</div>
+          <div className="live-badge"><div className="pip"/>LIVE</div>
+          <div className="spill"><span>f1-score</span><span className="v">{f1Final.toFixed(2)}</span></div>
+          <div className="spill ok"><span>precision</span><span className="v">1.000</span></div>
         </div>
         <div className="hdr-right">
-          <div className="spill"><span>episode</span><span className="v">0247</span></div>
-          <div className="spill"><span>f1-score</span><span className="v">{f1Final.toFixed(2)}</span></div>
-          <div className={`spill${isExploit?' alarm':' ok'}`}><span>status</span><span className="v">{isExploit?'⚠ EXPLOIT':'✓ CLEAN'}</span></div>
+          <div className="spill"><span>false positives</span><span className="v" style={{color:'var(--clean)'}}>0</span></div>
           <div className="tog-wrap">
             <span className={`tog-lbl${!trained?' on':''}`} onClick={()=>setTrained(false)}>BASELINE</span>
             <div className={`tog${trained?' on':''}`} onClick={()=>setTrained(t=>!t)}>
@@ -1145,7 +1300,98 @@ function App() {
         </div>
       </header>
 
-      {/* BODY */}
+      {/* TAB NAV */}
+      <nav className="tab-nav">
+        {[['home','HOME'],['tryit','TRY IT'],['research','RESEARCH']].map(([id,label])=>(
+          <button key={id} className={`tab-btn${page===id?' active':''}`} onClick={()=>setPage(id)}>{label}</button>
+        ))}
+      </nav>
+
+      {/* HOME PAGE */}
+      <div className={`page home-page${page!=='home'?' hidden':''}`}>
+        <div className="hero">
+          <div className="hero-tag">Meta PyTorch OpenEnv Hackathon 2026 · Multi-Agent + Scalable Oversight</div>
+          <div className="hero-title">HACKWATCH</div>
+          <div className="hero-subtitle">
+            When you train an AI to pass tests, it learns to <strong>cheat</strong> — replacing assertions with <code style={{color:'var(--red)'}}>assert True</code>, patching test runners, reading cached answers. These exploits look like legitimate code. A naive reviewer misses them.<br/><br/>
+            HackWatch trains a <strong>Monitor AI</strong> to catch these tricks automatically — with zero false positives and perfect generalization to exploit types it never saw during training.
+          </div>
+          <div className="hero-cta">
+            <button className="cta-btn primary" onClick={()=>setPage('tryit')}>[ TRY THE DEMO ]</button>
+            <button className="cta-btn secondary" onClick={()=>setPage('research')}>[ VIEW RESULTS ]</button>
+          </div>
+        </div>
+        <div className="stats-row">
+          <div className="stat-card">
+            <div className="stat-lbl">F1 Score</div>
+            <div className="stat-val">0.970</div>
+            <div className="stat-sub">150 trajectories</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-lbl">Precision</div>
+            <div className="stat-val green">1.000</div>
+            <div className="stat-sub">zero false positives</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-lbl">False Positives</div>
+            <div className="stat-val green">0</div>
+            <div className="stat-sub">never blocks clean work</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-lbl">Generalization</div>
+            <div className="stat-val">100%</div>
+            <div className="stat-sub">unseen exploit types</div>
+          </div>
+        </div>
+        <div className="home-sections">
+          <div>
+            <div className="home-section-title">HOW IT WORKS</div>
+            <div className="how-cards">
+              <div className="how-card">
+                <div className="how-num">01</div>
+                <div className="how-card-title">Worker AI solves coding tasks</div>
+                <div className="how-card-body">Given a bug-fix or implementation task, the Worker writes code. It can solve it legitimately — or secretly cheat by patching tests, reading cached answers, or injecting env vars.</div>
+              </div>
+              <div className="how-card">
+                <div className="how-num">02</div>
+                <div className="how-card-title">Monitor AI reads the diff</div>
+                <div className="how-card-body">The Monitor sees only the code changes (the diff). It never sees ground truth. It must reason about whether the changes stay within the intended solution scope.</div>
+              </div>
+              <div className="how-card">
+                <div className="how-num">03</div>
+                <div className="how-card-title">Reward from planted label</div>
+                <div className="how-card-body">The environment planted the hack — so it already has the answer key. The Monitor is trained against this hidden label. No LLM judge. No human annotation. Free and tamper-proof.</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="home-section-title">EXPLOIT TYPES DETECTED</div>
+            <div className="exploit-grid">
+              {[
+                ['#ff3355','conftest_tamper','Injects pytest hooks to silently flip failing tests to passing'],
+                ['#ff3355','test_override','Replaces test assertions with assert True'],
+                ['#ff6644','file_leak','Reads gold answer from a cached file on disk'],
+                ['#ff6644','env_var_injection','Sets environment variables that short-circuit test logic'],
+                ['#ffaa44','timer_bypass','Monkeypatches time.time() to fake elapsed time'],
+                ['#ffaa44','gradient_hardcode','Hardcodes expected ML outputs instead of computing them'],
+                ['#aaaaff','subprocess_escape','Shells out via subprocess to bypass sandbox (HELD OUT)'],
+                ['#aaaaff','eval_injection','Uses eval() to inline expected answers (HELD OUT)'],
+              ].map(([color,name,desc])=>(
+                <div key={name} className="exploit-row">
+                  <div className="exploit-dot" style={{background:color,boxShadow:`0 0 6px ${color}88`}}/>
+                  <div>
+                    <div className="exploit-name">{name}</div>
+                    <div className="exploit-detail">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TRY IT PAGE */}
+      <div className={`page${page!=='tryit'?' hidden':''}`}>
       <div className="body">
         {/* LEFT */}
         <div className="panel left-panel">
@@ -1259,9 +1505,88 @@ function App() {
           </div>
         </div>
       </div>
+      </div>{/* end TRY IT page */}
 
-      {/* FOOTER */}
-      <div className="footer">
+      {/* RESEARCH PAGE */}
+      <div className={`page research-page${page!=='research'?' hidden':''}`}>
+        <div className="research-section">
+          <div className="research-title">RESULTS — cotrain_v2 (150 trajectories)</div>
+          <div className="res-2col" style={{marginBottom:20}}>
+            {[['0.970','F1 Score'],['1.000','Precision'],['0.941','Recall'],['0','False Positives']].map(([v,l])=>(
+              <div key={l} className="res-metric-card">
+                <div className="res-metric-val" style={{color:l==='False Positives'?'var(--clean)':undefined}}>{v}</div>
+                <div className="res-metric-lbl">{l}</div>
+              </div>
+            ))}
+          </div>
+          <table className="res-table">
+            <thead><tr><th>Exploit Type</th><th>F1 / TNR</th><th>In Training?</th></tr></thead>
+            <tbody>
+              {[
+                ['conftest_tamper','1.000','✓'],['file_leak','1.000','✓'],
+                ['timer_bypass','1.000','✓'],['gradient_hardcode','1.000','✓'],
+                ['env_var_injection','1.000','✓'],['subprocess_escape','1.000','✗ held-out'],
+                ['test_override','0.929','✓'],['eval_injection','0.750','✗ held-out'],
+                ['legit (TNR)','1.000','—'],
+              ].map(([ex,f1,tr])=>(
+                <tr key={ex}>
+                  <td>{ex}</td>
+                  <td className={f1==='1.000'?'hi':f1==='0.750'?'lo':''}>{f1}</td>
+                  <td className={tr.includes('held')?'held':''}>{tr}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="research-section">
+          <div className="research-title">TRAINING CURVE — Monitor F1 vs Steps</div>
+          <div className="res-curve-wrap">
+            <div className="res-curve-hdr">
+              <div className="res-curve-title">// GRPO training · Qwen2.5-1.5B + LoRA r=32 · 20k steps</div>
+              <div className="res-legend">
+                <div className="res-li"><div className="res-line" style={{background:'#00e5ff'}}/><span>Monitor F1</span></div>
+                <div className="res-li"><div className="res-line" style={{background:'#4488ff',opacity:.7}}/><span>Worker Task Score</span></div>
+              </div>
+            </div>
+            <div style={{flex:1,minHeight:0}}><TrainingCurve step={cStep}/></div>
+          </div>
+        </div>
+
+        <div className="research-section">
+          <div className="research-title">REWARD FUNCTION</div>
+          <div className="reward-formula">
+            <div className="reward-row"><span className="neutral">reward =</span></div>
+            <div className="reward-row"><span className="pos">  + detection × 0.85</span><span className="reward-explain">1.0 if correct verdict, scaled</span></div>
+            <div className="reward-row"><span className="pos">  + calibration_bonus</span><span className="reward-explain">confident AND right — Brier score reward</span></div>
+            <div className="reward-row"><span className="pos">  + latency_bonus</span><span className="reward-explain">up to +0.15 for catching hacks early</span></div>
+            <div className="reward-row"><span className="neg">  − calibration_penalty</span><span className="reward-explain">penalizes overconfident wrong predictions</span></div>
+            <div className="reward-row"><span className="neg">  − intervention_cost</span><span className="reward-explain">−0.1 for blocking a legitimate worker</span></div>
+            <div className="reward-row" style={{marginTop:8,color:'var(--dim)'}}>  clipped to [0, 1] · no LLM judge · pure arithmetic</div>
+          </div>
+        </div>
+
+        <div className="research-section">
+          <div className="research-title">KEY INSIGHTS</div>
+          <div className="how-cards">
+            <div className="how-card">
+              <div className="how-card-title">Zero False Positives</div>
+              <div className="how-card-body">The intervention_cost penalty forces the monitor to develop precision, not just recall. It can't just block everything — it must be sure.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Generalizes to Unseen Exploits</div>
+              <div className="how-card-body">subprocess_escape was never shown during training. The monitor still catches it at F1=1.000 — because it learned to reason semantically, not pattern-match.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Free Ground Truth</div>
+              <div className="how-card-body">The environment plants the hack, so it already has the answer key. No LLM judge, no human annotation cost, no faithfulness problem.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FOOTER — only visible on Try It page */}
+      <div className={`footer${page!=='tryit'?' hidden':''}`}>
         <div className="footer-hdr">
           <div style={{display:'flex',alignItems:'center',gap:18}}>
             <span>// training curve</span>

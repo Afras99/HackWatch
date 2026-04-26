@@ -1284,12 +1284,12 @@ function App() {
           <span style={{fontSize:10,color:'var(--g2)',letterSpacing:'.06em'}}>monitor</span>
         </div>
         <div className="hdr-mid">
-          <div className="live-badge"><div className="pip"/>LIVE</div>
-          <div className="spill"><span>f1-score</span><span className="v">{f1Final.toFixed(2)}</span></div>
-          <div className="spill ok"><span>precision</span><span className="v">1.000</span></div>
+          <div className="live-badge"><div className="pip"/>DEMO</div>
+          <div className="spill"><span>model</span><span className="v">Qwen2.5-1.5B</span></div>
+          <div className="spill"><span>exploit types</span><span className="v">12</span></div>
         </div>
         <div className="hdr-right">
-          <div className="spill"><span>false positives</span><span className="v" style={{color:'var(--clean)'}}>0</span></div>
+          <div className="spill"><span>tasks</span><span className="v">30</span></div>
           <div className="tog-wrap">
             <span className={`tog-lbl${!trained?' on':''}`} onClick={()=>setTrained(false)}>BASELINE</span>
             <div className={`tog${trained?' on':''}`} onClick={()=>setTrained(t=>!t)}>
@@ -1323,24 +1323,24 @@ function App() {
         </div>
         <div className="stats-row">
           <div className="stat-card">
-            <div className="stat-lbl">F1 Score</div>
+            <div className="stat-lbl">Final F1 Score</div>
             <div className="stat-val">0.970</div>
-            <div className="stat-sub">150 trajectories</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-lbl">Precision</div>
-            <div className="stat-val green">1.000</div>
-            <div className="stat-sub">zero false positives</div>
+            <div className="stat-sub">eval on 150 held-out trajectories</div>
           </div>
           <div className="stat-card">
             <div className="stat-lbl">False Positives</div>
             <div className="stat-val green">0</div>
-            <div className="stat-sub">never blocks clean work</div>
+            <div className="stat-sub">never wrongly blocked a clean worker</div>
           </div>
           <div className="stat-card">
-            <div className="stat-lbl">Generalization</div>
-            <div className="stat-val">100%</div>
-            <div className="stat-sub">unseen exploit types</div>
+            <div className="stat-lbl">Held-Out Exploits</div>
+            <div className="stat-val">2 / 2</div>
+            <div className="stat-sub">caught types never seen in training</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-lbl">Training Time</div>
+            <div className="stat-val">~20 min</div>
+            <div className="stat-sub">300 steps on A100 · 1.5B model</div>
           </div>
         </div>
         <div className="home-sections">

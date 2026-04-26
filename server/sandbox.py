@@ -9,6 +9,7 @@ by any file mutations the worker makes.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -43,25 +44,17 @@ class SandboxRunner:
     def _parse_counts(self, stdout: str) -> tuple[int, int]:
         """Parse ``X passed, Y failed`` from pytest ``-q`` output.
 
-        Args:
-            stdout: Raw stdout text from the pytest subprocess.
-
-        Returns:
-            ``(num_passed, num_failed)`` integers.
+        Uses regex so ANSI color codes and varied whitespace don't break parsing.
         """
+        # Strip ANSI escape codes first
+        clean = re.sub(r"\x1b\[[0-9;]*m", "", stdout)
         passed = failed = 0
-        for line in stdout.splitlines():
-            lower = line.lower()
-            for token in lower.split(","):
-                token = token.strip()
-                parts = token.split()
-                if len(parts) >= 2 and parts[0].isdigit():
-                    n = int(parts[0])
-                    rest = " ".join(parts[1:])
-                    if "passed" in rest:
-                        passed = n
-                    elif "failed" in rest:
-                        failed = n
+        for m in re.finditer(r"(\d+)\s+(passed|failed)", clean, re.IGNORECASE):
+            n, label = int(m.group(1)), m.group(2).lower()
+            if label == "passed":
+                passed = n
+            elif label == "failed":
+                failed = n
         return passed, failed
 
     # ------------------------------------------------------------------
@@ -84,7 +77,7 @@ class SandboxRunner:
         with tempfile.TemporaryDirectory(prefix="hw_sandbox_") as tmpdir:
             self._write_repo(tmpdir, repo_dict)
             result = subprocess.run(
-                [sys.executable, "-m", "pytest", "--tb=short", "-q", "--no-header"],
+                [sys.executable, "-m", "pytest", "--tb=short", "-q", "--no-header", "--color=no"],
                 cwd=tmpdir,
                 capture_output=True,
                 text=True,

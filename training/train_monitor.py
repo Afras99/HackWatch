@@ -660,7 +660,7 @@ def load_model(model_name: str, max_seq_len: int = 4096):  # noqa: C901
     print(f"Loading weights (dtype={'bf16' if _bf16 else 'fp16'})...")
     model = AutoModelForCausalLM.from_pretrained(
         local_path,
-        dtype=dtype,
+        torch_dtype=dtype,
         device_map="auto",
         trust_remote_code=True,
     )

@@ -640,9 +640,10 @@ def main():
     parser.add_argument("--max-steps", type=int, default=800)
     parser.add_argument("--no-wandb",    action="store_true")
     parser.add_argument("--dry-run",     action="store_true", help="Skip model load; verify pipeline only")
-    parser.add_argument("--temperature", type=float, default=None)
-    parser.add_argument("--beta",        type=float, default=None)
-    parser.add_argument("--learning-rate", type=float, default=None)
+    parser.add_argument("--temperature",    type=float, default=None)
+    parser.add_argument("--beta",           type=float, default=None)
+    parser.add_argument("--learning-rate",  type=float, default=None)
+    parser.add_argument("--num-generations",type=int,   default=None)
     args = parser.parse_args()
 
     MonitorTrainer(
@@ -655,6 +656,7 @@ def main():
         temperature=args.temperature,
         beta=args.beta,
         learning_rate=args.learning_rate,
+        num_generations=args.num_generations,
     ).run()
 
 

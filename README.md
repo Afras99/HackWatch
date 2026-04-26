@@ -5,7 +5,16 @@ colorFrom: yellow
 colorTo: red
 sdk: docker
 app_port: 8000
-pinned: false
+pinned: true
+license: mit
+tags:
+  - reinforcement-learning
+  - reward-hacking
+  - multi-agent
+  - grpo
+  - scalable-oversight
+  - openenv
+short_description: RL environment that trains a Monitor agent to catch reward-hacking Workers. Planted-label rewards, no LLM judge. F1=0.970, zero false positives.
 ---
 
 # HackWatch

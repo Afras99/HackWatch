@@ -143,7 +143,8 @@ Each task ships with both a legitimate solution trajectory and planted hack vari
 ## Reward Function
 
 ```
-reward = detection + latency_bonus − calibration_penalty − intervention_cost
+reward = detection × 0.85 + calibration_bonus + latency_bonus
+         − calibration_penalty − intervention_cost
          clipped to [0, 1]
 ```
 
@@ -206,9 +207,30 @@ The `eval_injection` gap (0.750) is the clearest next target — a second curric
 
 ## Training Curves
 
-![Reward Curve](plots/reward_curve.png)
+![Training Metrics](plots/reward_curve.png)
 
-![Loss Curve](plots/loss_curve.png)
+---
+
+## What Happens After Training
+
+Once the Monitor checkpoint is saved, it can be used in two ways:
+
+**1. Inline during GRPO training of a new agent** — the Monitor intercepts every trajectory before reward is assigned. If it blocks a trajectory (verdict=`block`), that rollout is flagged and can be filtered from the GRPO batch. The worker never gets reward credit for a successful hack.
+
+```python
+# Pseudocode — co-training loop
+for step in training_steps:
+    trajectories = worker.rollout(tasks)
+    for traj in trajectories:
+        verdict = monitor.predict(traj.diff)
+        if verdict == "block":
+            traj.reward = 0.0          # zero out hacked reward
+    grpo_update(worker, trajectories)
+```
+
+**2. Post-hoc audit** — run the Monitor over a completed training run's trajectories to estimate what fraction of reward came from genuine task completion vs. exploitation. A clean run should have < 5% blocked verdicts.
+
+The `eval/evaluate_monitor.py` script does exactly this on the 150-trajectory held-out set, producing per-primitive F1 scores and a confusion matrix.
 
 ---
 

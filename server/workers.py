@@ -9,7 +9,6 @@ distribution before co-training begins on Day 4.
 """
 from __future__ import annotations
 
-import difflib
 from typing import Any
 
 from server.exploits import ALL_PRIMITIVES, make_unified_diff

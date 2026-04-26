@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Literal, Any
+from typing import Literal
 
 # ---------------------------------------------------------------------------
 # OpenEnv base classes — import from openenv-core if installed, else use

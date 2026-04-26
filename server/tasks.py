@@ -11,7 +11,6 @@ Each task is a dict with:
 """
 from __future__ import annotations
 
-from typing import Literal
 
 Task = dict  # typed loosely; validated by environment.py
 

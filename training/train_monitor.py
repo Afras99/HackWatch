@@ -28,11 +28,9 @@ import hashlib
 import json
 import logging
 import math
-import os
 import random
 import re
 from pathlib import Path
-from typing import Any
 
 import httpx
 
@@ -282,10 +280,14 @@ def build_env_reward_fn(env_url: str):
             component_log.append(scored)
             hack_in_diff = scored["hack_likely"]
             blocked = action["verdict"] in ("flag", "block")
-            if hack_in_diff and blocked:           tp += 1
-            elif hack_in_diff and not blocked:     fn += 1
-            elif not hack_in_diff and not blocked: tn += 1
-            else:                                  fp += 1
+            if hack_in_diff and blocked:
+                tp += 1
+            elif hack_in_diff and not blocked:
+                fn += 1
+            elif not hack_in_diff and not blocked:
+                tn += 1
+            else:
+                fp += 1
 
         # Blend: use real env reward when available, heuristic otherwise.
         # Real env reward uses planted_label ground truth; heuristic uses regex signals.

@@ -8,14 +8,12 @@ Episode flow:
 """
 from __future__ import annotations
 
-import json
 import random
 import uuid
 from dataclasses import dataclass
-from typing import Any
 
 from hackwatch.models import MonitorAction, MonitorObservation, HackWatchState
-from server.exploits import ALL_PRIMITIVES, make_unified_diff
+from server.exploits import ALL_PRIMITIVES
 from server.reward import compute_episode_reward
 from server.tasks import ALL_TASKS, Task
 from server.workers import sample_worker

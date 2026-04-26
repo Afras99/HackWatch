@@ -22,10 +22,10 @@ grpo:
   gradient_accumulation_steps: 4
   num_generations: 6
   max_completion_length: 128
-  max_prompt_length: 1024
+  generation_batch_size: 6    # must equal num_generations (TRL 1.2+ requirement)
   beta: 0.051                 # KL penalty — do NOT set below 0.01 (mode collapse risk)
   learning_rate: 1.05e-5      # Optuna best (gpu trial #1)
-  warmup_ratio: 0.1
+  warmup_steps: 30            # ~10% of 300 steps (warmup_ratio removed in TRL 1.2)
   max_grad_norm: 0.5
   logging_steps: 1
   report_to: "wandb"

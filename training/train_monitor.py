@@ -200,6 +200,7 @@ def build_env_reward_fn(env_url: str):
     and the episode reward is returned.
     """
     _call_count = [0]
+    _log_path: list[Path | None] = [None]  # set lazily from output_dir env var
 
     def _to_text(item) -> str:
         """Extract plain text from either a string or a TRL message-list completion."""
@@ -303,13 +304,34 @@ def build_env_reward_fn(env_url: str):
         fpr       = fp / max(1, fp + tn)
 
         # Key per-batch stdout metrics (one line, always visible in logs)
+        env_hits = sum(1 for r in env_rewards if r is not None)
         log.info(
             f"[reward] step={_call_count[0]:04d} | "
             f"mean={mean_reward:.3f} | F1={f1:.3f} | "
             f"P={precision:.3f} R={recall:.3f} | "
             f"TP={tp} FP={fp} TN={tn} FN={fn} | "
-            f"env_hit={sum(1 for r in env_rewards if r is not None)}/{len(env_rewards)}"
+            f"env_hit={env_hits}/{len(env_rewards)}"
         )
+
+        # Append compact JSONL record so judges can inspect training progression
+        try:
+            if _log_path[0] is None:
+                out_dir = os.environ.get("HACKWATCH_OUTPUT_DIR", "./runs")
+                _log_path[0] = Path(out_dir) / "training_log.jsonl"
+                _log_path[0].parent.mkdir(parents=True, exist_ok=True)
+            with _log_path[0].open("a") as _f:
+                _f.write(json.dumps({
+                    "step": _call_count[0],
+                    "mean_reward": round(mean_reward, 4),
+                    "f1": round(f1, 4),
+                    "precision": round(precision, 4),
+                    "recall": round(recall, 4),
+                    "fpr": round(fpr, 4),
+                    "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+                    "env_hits": env_hits,
+                }) + "\n")
+        except Exception:
+            pass
 
         # ---- Per-component telemetry (key metric: reasoning std within groups) ----
         def _mean(xs: list[float]) -> float:

@@ -38,7 +38,8 @@ Held-out generalization: `subprocess_escape` F1=1.000 · `eval_injection` F1=0.7
 |---|---|
 | 🚀 HF Space (live demo) | https://afras-hackwatch.hf.space/demo |
 | 📓 Training Notebook | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Afras99/HackWatch/blob/main/training/train_hackwatch_colab.ipynb) |
-| 📝 Blog Post | https://github.com/Afras99/HackWatch/blob/main/docs/blog.md |
+| 📝 Blog Post (HF) | https://huggingface.co/datasets/Afras/blog/blob/main/hackwatch.md |
+| 📝 Blog Post (GitHub) | https://github.com/Afras99/HackWatch/blob/main/docs/blog.md |
 | 📊 Training Log | https://github.com/Afras99/HackWatch/blob/main/docs/training_log.md |
 | 💻 Code Repo | https://github.com/Afras99/HackWatch |
 

@@ -166,7 +166,7 @@ Full W&B run: [afrasvellora777-student/hackwatch/runs/w9osws3o](https://wandb.ai
 
 ## Demo
 
-The live demo at [huggingface.co/spaces/Afras/hackwatch](https://huggingface.co/spaces/Afras/hackwatch) shows:
+The live demo at [huggingface.co/spaces/Afras/hackwatch](https://afras-hackwatch.hf.space/demo) shows:
 
 1. A task queue of coding challenges
 2. The worker writing a diff in a terminal animation
@@ -190,5 +190,5 @@ The environment is fully OpenEnv-compatible and dockerized for reproducibility.
 ---
 
 *Code: [github.com/Afras99/HackWatch](https://github.com/Afras99/HackWatch)*  
-*Space: [huggingface.co/spaces/Afras/hackwatch](https://huggingface.co/spaces/Afras/hackwatch)*  
+*Space: [huggingface.co/spaces/Afras/hackwatch](https://afras-hackwatch.hf.space/demo)*  
 *Notebook: [Open in Colab](https://colab.research.google.com/github/Afras99/HackWatch/blob/main/training/train_hackwatch_colab.ipynb)*

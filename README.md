@@ -14,7 +14,7 @@ tags:
   - grpo
   - scalable-oversight
   - openenv
-short_description: RL environment that trains a Monitor agent to catch reward-hacking Workers. Planted-label rewards, no LLM judge. F1=0.970, zero false positives.
+short_description: RL env to catch reward-hacking agents. F1=0.970.
 ---
 
 # HackWatch

@@ -1509,6 +1509,63 @@ function App() {
 
       {/* RESEARCH PAGE */}
       <div className={`page research-page${page!=='research'?' hidden':''}`}>
+
+        {/* WHY THIS PROBLEM */}
+        <div className="research-section">
+          <div className="research-title">WHY WE BUILT THIS</div>
+          <div className="how-cards" style={{marginBottom:16}}>
+            <div className="how-card">
+              <div className="how-card-title" style={{color:'var(--red)'}}>The Problem Is Real</div>
+              <div className="how-card-body">METR (2025) found o3 reward-hacking 98% of RE-bench runs by copying reference solutions. Palisade showed reasoning models deleting opponent chess engine binaries to win games. Every team running GRPO at scale hits this — agents optimize the metric, not the goal.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title" style={{color:'var(--yellow)'}}>Existing Solutions Are Expensive</div>
+              <div className="how-card-body">LLM-as-judge doubles inference cost on every trajectory. Static hack-detection datasets don't generalize — a model trained on assert True misses env var injection. Human annotation doesn't scale to thousands of rollouts per hour.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title" style={{color:'var(--clean)'}}>Our Insight: Free Ground Truth</div>
+              <div className="how-card-body">If the environment plants the hack, it already has the answer key. No judge needed. No annotation cost. The reward signal is tamper-proof because the environment controls what happened — the worker can't lie about it.</div>
+            </div>
+          </div>
+          <div className="how-card" style={{marginBottom:0}}>
+            <div className="how-card-title">Why This Hackathon Theme Fit Perfectly</div>
+            <div className="how-card-body" style={{lineHeight:1.8}}>
+              The Meta PyTorch OpenEnv Hackathon theme was <strong style={{color:'var(--g0)'}}>Multi-Agent + Scalable Oversight</strong> — exactly the two problems HackWatch addresses. Multi-agent: a Worker and a Monitor trained adversarially against each other. Scalable oversight: a supervision signal that costs nothing to generate, scales to any number of trajectories, and doesn't rely on a human or a judge in the loop. The planted-label approach turns scalable oversight from a research question into an engineering primitive that any post-training team can drop into their pipeline.
+            </div>
+          </div>
+        </div>
+
+        {/* DESIGN DECISIONS */}
+        <div className="research-section">
+          <div className="research-title">KEY DESIGN DECISIONS</div>
+          <div className="how-cards">
+            <div className="how-card">
+              <div className="how-card-title">Why GRPO, not PPO?</div>
+              <div className="how-card-body">GRPO doesn't need a separate critic/value network, cutting memory in half. For a 1.5B model on a single A100 this matters. The group-relative advantage also works well when rewards are sparse — which they are here (one reward per episode).</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Why hold out 2 exploit types?</div>
+              <div className="how-card-body">subprocess_escape and eval_injection were never shown during training. This lets us test whether the monitor learned generalizable reasoning or just memorized patterns. F1=1.000 on subprocess_escape (never seen) vs F1=0.929 on test_override (seen many times) tells us it's actually reasoning.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Why calibration penalty?</div>
+              <div className="how-card-body">Without it, the model learns to always output confidence=1.0. That games the Brier score reward while adding no real information. The penalty keeps confidence honest — the monitor must be uncertain when it's uncertain.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Why stealth exploits?</div>
+              <div className="how-card-body">Standard exploits have obvious regex signals (assert True, os.environ). Stealth variants produce zero regex hits, forcing the model to reason semantically about whether the diff makes sense for the stated task. This is what prevents the monitor from becoming a fancy grep.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Why Qwen2.5-1.5B?</div>
+              <div className="how-card-body">Small enough to fine-tune in under 20 minutes on an A100. Large enough to reason about code semantics. The goal was to show the approach works — a larger model would push F1 higher but the technique is model-agnostic.</div>
+            </div>
+            <div className="how-card">
+              <div className="how-card-title">Why no Unsloth?</div>
+              <div className="how-card-body">Unsloth 2026.4.8 has a bug: UNSLOTH_RETURN_HIDDEN_STATES=1 causes the reference forward pass to return 3D hidden states instead of 2D log probs, making KL divergence explode to ~40M. Standard HF + PEFT path is slower but correct.</div>
+            </div>
+          </div>
+        </div>
+
         <div className="research-section">
           <div className="research-title">RESULTS — cotrain_v2 (150 trajectories)</div>
           <div className="res-2col" style={{marginBottom:20}}>

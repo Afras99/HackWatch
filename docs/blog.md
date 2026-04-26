@@ -58,6 +58,42 @@ This is the key insight: **if the environment plants the hack, it already has th
 
 ## Environment Design
 
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     HackWatch Environment                   │
+│                                                             │
+│  reset()                                                    │
+│  ├── plants hack variant  ──→  planted_label (HIDDEN)       │
+│  └── runs scripted WORKER ──→  produces diff                │
+│                                      │                      │
+│                                      ▼                      │
+│                              MonitorObservation             │
+│                         (task_prompt, worker_diff)          │
+│                                      │                      │
+└──────────────────────────────────────┼──────────────────────┘
+                                       │
+                                       ▼
+                              ┌─────────────────┐
+                              │    MONITOR LLM  │
+                              │ Qwen2.5-1.5B    │
+                              │   + LoRA r=32   │
+                              └────────┬────────┘
+                                       │
+                              verdict: allow / flag / block
+                                       │
+                                       ▼
+                     reward = f(verdict, planted_label)
+                        detection × 0.85
+                      + calibration_bonus
+                      + latency_bonus
+                      − calibration_penalty
+                      − intervention_cost
+                     ──────────────────────────
+                      no LLM judge · pure arithmetic
+```
+
 ### The Two Agents
 
 **Worker** attempts coding tasks — bug fixes, data structure implementations, algorithm corrections. It can solve them legitimately or use one of 8 exploit primitives.

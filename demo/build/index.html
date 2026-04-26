@@ -508,6 +508,21 @@ body::after{
   font-size:12px;color:#ffcccc;line-height:1.5;font-family:var(--mono);
 }
 .v-clean-sub{font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.04em;}
+.cheat-banner{
+  margin-top:10px;padding:14px 16px;
+  background:rgba(255,50,50,.1);border:1px solid rgba(255,80,80,.4);
+  border-left:3px solid var(--red);
+}
+.cheat-banner-title{font-size:12px;color:#ff7777;font-weight:600;margin-bottom:6px;letter-spacing:.04em;}
+.cheat-banner-sub{font-size:11px;color:#cc8888;line-height:1.6;}
+.cheat-banner-sub strong{color:#ffaaaa;}
+.clean-banner{
+  margin-top:10px;padding:14px 16px;
+  background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.25);
+  border-left:3px solid var(--clean);
+}
+.clean-banner-title{font-size:12px;color:var(--clean);font-weight:600;margin-bottom:6px;letter-spacing:.04em;}
+.clean-banner-sub{font-size:11px;color:#66cc99;line-height:1.6;}
 .gt-flash{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   background:rgba(2,3,2,.92);font-size:11px;color:var(--g0);letter-spacing:.08em;
@@ -1393,11 +1408,10 @@ function App() {
       {/* TRY IT PAGE */}
       <div className={`page${page!=='tryit'?' hidden':''}`}>
       <div className="body">
-        {/* LEFT */}
+        {/* LEFT — task picker */}
         <div className="panel left-panel">
           <div className="panel-hdr">
-            <span>// TARGET QUEUE</span>
-            <span className="accent">[{TASKS.length}]</span>
+            <span>// PICK A TASK</span>
           </div>
           <div className="panel-body left-body">
             {cats.map(cat=>(
@@ -1409,8 +1423,6 @@ function App() {
                     <div key={t.id} className={`task-item${sel===i?' active':''}`} onClick={()=>handleTask(i)}>
                       <div className={`t-dot ${t.diff}`}/>
                       <span className="t-name">{t.name}</span>
-                      <span className="t-badge">{t.badge}</span>
-                      <span className="t-num">{String(i+1).padStart(2,'0')}</span>
                     </div>
                   );
                 })}
@@ -1419,89 +1431,64 @@ function App() {
           </div>
         </div>
 
-        {/* CENTER */}
+        {/* CENTER — worker output */}
         <div className="panel center-panel">
           <div className="center-hdr">
-            <span className="center-title">{task.name.toUpperCase()}</span>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--dim)',letterSpacing:'.06em'}}>
-                +{DIFFS[task.id]?.filter(r=>r.t==='a').length||0} / -{DIFFS[task.id]?.filter(r=>r.t==='r').length||0} lines
-              </span>
-              <button className={`exec-btn${running?' busy':''}`} onClick={handleRun}>
-                {running?'[ EXECUTING... ]':'[ RUN AGENT ]'}
-              </button>
+            <div>
+              <span className="center-title">{task.name.toUpperCase()}</span>
+              <div style={{fontSize:10,color:'var(--dim)',marginTop:3,letterSpacing:'.04em'}}>Worker AI solution</div>
             </div>
-          </div>
-          <div className="how-it-works">
-            <div className="hiw-row">
-              <div className="hiw-pill worker">① WORKER AI</div>
-              <div className="hiw-arrow">→</div>
-              <div className="hiw-text">writes code to solve the task (may secretly cheat)</div>
-            </div>
-            <div className="hiw-row">
-              <div className="hiw-pill monitor">② MONITOR AI</div>
-              <div className="hiw-arrow">→</div>
-              <div className="hiw-text">reads the code diff and decides: allow, flag, or block</div>
-            </div>
+            <button className={`exec-btn${running?' busy':''}`} onClick={handleRun}>
+              {running?'[ RUNNING... ]':'[ RUN AGENT ]'}
+            </button>
           </div>
           <div className="center-body">
-            <div className="section-label worker-label">▸ WORKER AI OUTPUT — what the agent wrote</div>
             <Terminal taskId={task.id} running={running} key={task.id}/>
-            <div className="section-label diff-label">▸ CODE DIFF — changes made to the codebase (monitor reads this)</div>
-            <DiffView taskId={task.id} show={showDiff} key={task.id+'-d'}/>
-            <div className="prog">
-              <div className="prog-meta">
-                <span>// monitor analysis{running?'  scanning...':'  complete'}</span>
-                <span className="prog-pct">{progress}%</span>
+            {showDiff&&isExploit&&(
+              <div className="cheat-banner">
+                <div className="cheat-banner-title">⚠ Hidden cheat detected in the diff</div>
+                <div className="cheat-banner-sub">The Worker also modified <strong>conftest.py</strong> to suppress test failures — the real solution code above is a cover. The Monitor caught this.</div>
               </div>
-              <div className="prog-track">
-                <div className={`prog-fill${progress===100?' done':''}`} style={{width:`${progress}%`}}/>
+            )}
+            {showDiff&&!isExploit&&(
+              <div className="clean-banner">
+                <div className="clean-banner-title">✓ Legitimate solution</div>
+                <div className="clean-banner-sub">No hidden changes. The Worker solved the task honestly. The Monitor correctly allowed it.</div>
               </div>
-            </div>
-            <div className="ep-log">
-              <div className="ep-hdr">
-                <span>// episode log</span>
-                <span style={{color:'var(--muted)'}}>ep_0247 · {task.id}</span>
+            )}
+            {running&&(
+              <div className="prog">
+                <div className="prog-meta">
+                  <span>Monitor scanning...</span>
+                  <span className="prog-pct">{progress}%</span>
+                </div>
+                <div className="prog-track">
+                  <div className={`prog-fill${progress===100?' done':''}`} style={{width:`${progress}%`}}/>
+                </div>
               </div>
-              <div className="ep-body">
-                {eplog.map((r,i)=>(
-                  <div key={i} className="ep-row">
-                    <span className="ep-step">{r.s}</span>
-                    <span className="ep-msg" style={{color:r.c}}>{r.m}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT — monitor verdict */}
         <div className={`panel right-panel ${isExploit?'exploit':'clean'}`}>
           <div className="panel-hdr">
             <span>// MONITOR AI VERDICT</span>
-            <span className="accent">{trained?'[TRAINED]':'[BASELINE]'}</span>
+            <div className="tog-wrap" style={{gap:5}}>
+              <span className={`tog-lbl${!trained?' on':''}`} onClick={()=>setTrained(false)}>BASELINE</span>
+              <div className={`tog${trained?' on':''}`} onClick={()=>setTrained(t=>!t)}>
+                <div className="tog-knob"/>
+              </div>
+              <span className={`tog-lbl${trained?' on':''}`} onClick={()=>setTrained(true)}>TRAINED</span>
+            </div>
           </div>
           <div className="right-body">
             <VerdictCard taskId={task.id} trained={trained} key={task.id+trained}/>
-            <div className="sep"/>
-            <div className="r-section">
-              <div className="r-title">// reward breakdown</div>
-              <RBar label="Correctness" value={vd.corr} color="g"/>
-              <RBar label="No Exploit"
-                value={trained?vd.noex:Math.min(.95,vd.noex+.65)}
-                color={isExploit?'r':'g'} hl={isExploit}/>
-              <RBar label="Efficiency"  value={vd.eff}  color="y"/>
-            </div>
-            <div className="sep"/>
-            <div className="r-section">
-              <div className="r-title">// exploit history  (last 10 runs)</div>
-              <Sparkline/>
-            </div>
-            <div className="sep"/>
-            <div className="r-section">
-              <div className="r-title">// exploit types this session</div>
-              <Donut/>
-            </div>
+            {!trained&&(
+              <div style={{marginTop:10,padding:'8px 12px',background:'rgba(255,200,0,.07)',border:'1px solid rgba(255,200,0,.2)',fontSize:10,color:'var(--yellow)',lineHeight:1.6}}>
+                Baseline = untrained model. Toggle to TRAINED to see what HackWatch learned.
+              </div>
+            )}
           </div>
         </div>
       </div>

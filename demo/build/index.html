@@ -594,6 +594,33 @@ body::after{
 .f-chip{font-size:9px;color:var(--dim);padding:2px 7px;border:1px solid var(--border2);display:flex;gap:5px;}
 .f-chip .v{color:var(--g0);}
 .footer-body{flex:1;padding:3px 14px 6px;overflow:hidden;display:flex;flex-direction:column;min-height:0;width:100%;}
+/* ═══════════════ LOGS PAGE ═══════════════ */
+.logs-page{overflow-y:auto;background:var(--bg);padding:36px 60px;}
+.logs-page::-webkit-scrollbar{width:4px;}
+.logs-page::-webkit-scrollbar-thumb{background:var(--g3);}
+.logs-section{margin-bottom:40px;}
+.logs-section-title{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--g0);text-transform:uppercase;margin-bottom:16px;border-left:3px solid var(--g0);padding-left:10px;}
+.logs-meta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;}
+.logs-meta-chip{background:var(--panel);border:1px solid var(--border2);padding:6px 14px;font-size:10px;color:var(--dim);font-family:var(--mono);}
+.logs-meta-chip .lm-key{color:var(--g0);margin-right:6px;}
+.run-hist-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:20px;}
+.run-hist-table th{text-align:left;padding:6px 10px;color:var(--muted);font-weight:600;letter-spacing:1px;border-bottom:1px solid var(--border2);font-size:9px;}
+.run-hist-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:#aabbcc;font-family:var(--mono);}
+.run-hist-table tr.best-run td{color:var(--g0);background:rgba(0,229,255,.04);}
+.run-hist-table tr.best-run td:first-child{font-weight:700;}
+.run-hist-table .tag-bad{color:var(--red);font-size:9px;}
+.run-hist-table .tag-ok{color:var(--clean);font-size:9px;}
+.run-hist-table .tag-crash{color:var(--yellow);font-size:9px;}
+.step-log{width:100%;border-collapse:collapse;font-size:10px;}
+.step-log th{text-align:right;padding:5px 12px;color:var(--muted);font-weight:600;letter-spacing:1px;border-bottom:1px solid var(--border2);font-size:9px;}
+.step-log th:first-child{text-align:left;}
+.step-log td{padding:5px 12px;border-bottom:1px solid var(--border);color:#aabbcc;font-family:var(--mono);text-align:right;}
+.step-log td:first-child{text-align:left;color:var(--dim);}
+.step-log tr.peak-row td{color:var(--g0);background:rgba(0,229,255,.06);}
+.step-log tr.spike-row td{color:var(--yellow);}
+.step-log .bar{display:inline-block;height:6px;background:var(--g0);opacity:.7;vertical-align:middle;margin-right:6px;}
+.log-note{font-size:10px;color:var(--muted);margin-top:8px;padding-left:4px;line-height:1.6;}
+.log-note strong{color:var(--g1);}
 </style>
 </head>
 <body>
@@ -1317,7 +1344,7 @@ function App() {
 
       {/* TAB NAV */}
       <nav className="tab-nav">
-        {[['home','HOME'],['tryit','TRY IT'],['research','RESEARCH']].map(([id,label])=>(
+        {[['home','HOME'],['tryit','TRY IT'],['research','RESEARCH'],['logs','LOGS']].map(([id,label])=>(
           <button key={id} className={`tab-btn${page===id?' active':''}`} onClick={()=>setPage(id)}>{label}</button>
         ))}
       </nav>
@@ -1625,6 +1652,120 @@ function App() {
               <div className="how-card-title">Free Ground Truth</div>
               <div className="how-card-body">The environment plants the hack, so it already has the answer key. No LLM judge, no human annotation cost, no faithfulness problem.</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* LOGS PAGE */}
+      <div className={`page logs-page${page!=='logs'?' hidden':''}`}>
+        <div className="logs-section">
+          <div className="logs-section-title">// run: cotrain_v2 — best checkpoint</div>
+          <div className="logs-meta">
+            <div className="logs-meta-chip"><span className="lm-key">model</span>Qwen2.5-3B-Instruct + LoRA r=32</div>
+            <div className="logs-meta-chip"><span className="lm-key">algo</span>DR-GRPO · DAPO clip ε_high=0.28</div>
+            <div className="logs-meta-chip"><span className="lm-key">steps</span>300</div>
+            <div className="logs-meta-chip"><span className="lm-key">beta</span>0.051</div>
+            <div className="logs-meta-chip"><span className="lm-key">lr</span>1.05e-5</div>
+            <div className="logs-meta-chip"><span className="lm-key">batch</span>4 × 2 grad_accum</div>
+            <div className="logs-meta-chip"><span className="lm-key">num_gen</span>4</div>
+            <div className="logs-meta-chip"><span className="lm-key">temp</span>1.012</div>
+            <div className="logs-meta-chip"><span className="lm-key">eval F1</span><span style={{color:'var(--g0)',fontWeight:700}}>0.970</span></div>
+            <div className="logs-meta-chip"><span className="lm-key">precision</span><span style={{color:'var(--g0)'}}>1.000</span></div>
+            <div className="logs-meta-chip"><span className="lm-key">recall</span><span style={{color:'var(--g0)'}}>0.941</span></div>
+            <div className="logs-meta-chip"><span className="lm-key">false_pos</span><span style={{color:'var(--clean)'}}>0</span></div>
+          </div>
+        </div>
+        <div className="logs-section">
+          <div className="logs-section-title">// step-by-step training metrics</div>
+          <table className="step-log">
+            <thead>
+              <tr>
+                <th>step</th>
+                <th>reward</th>
+                <th>reward_std</th>
+                <th>kl</th>
+                <th>grad_norm</th>
+                <th>bar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                [1,   0.3256, 0.1218, 0.0697, 0.2955, ''],
+                [10,  0.2402, 0.3473, 0.1101, 2.2557, 'spike-row'],
+                [25,  0.6724, 0.2066, 0.0635, 0.1571, ''],
+                [50,  0.7585, 0.0187, 0.2258, 0.1208, ''],
+                [75,  0.5781, 0.2347, 0.1374, 0.3964, ''],
+                [100, 0.8339, 0.0458, 0.0482, 0.5218, ''],
+                [125, 0.8093, 0.0727, 0.1407, 0.2103, ''],
+                [150, 0.8490, 0.0305, 0.0873, 0.0500, ''],
+                [175, 0.7996, 0.0607, 0.0929, 0.2037, ''],
+                [200, 0.4621, 0.0124, 0.0754, 0.5017, ''],
+                [225, 0.8740, 0.0715, 0.1373, 0.0775, ''],
+                [229, 0.9033, 0.0284, 0.0483, 0.0134, 'peak-row'],
+                [250, 0.8159, 0.0375, 0.2617, 1.1987, ''],
+                [275, 0.8203, 0.0545, 0.2250, 0.0899, ''],
+                [300, 0.7960, 0.0480, 0.2431, 0.1255, ''],
+              ].map(([step,reward,rstd,kl,gnorm,cls])=>
+                React.createElement('tr',{key:step,className:cls},
+                  React.createElement('td',null,'step '+step),
+                  React.createElement('td',null,reward.toFixed(4)),
+                  React.createElement('td',null,rstd.toFixed(4)),
+                  React.createElement('td',null,kl.toFixed(4)),
+                  React.createElement('td',null,gnorm.toFixed(4)),
+                  React.createElement('td',null,
+                    React.createElement('span',{className:'bar',style:{width:Math.round(reward*80)+'px'}}),
+                  )
+                )
+              )}
+            </tbody>
+          </table>
+          <div className="log-note">
+            <strong>step 10</strong> — grad_norm spike to 2.26 (early learning burst), recovered by step 11. &nbsp;·&nbsp;
+            <strong>step 229</strong> — peak reward 0.9033. &nbsp;·&nbsp;
+            <strong>step 200</strong> — reward dip to 0.46 (curriculum difficulty spike), model recovered. &nbsp;·&nbsp;
+            KL stayed under 0.55 throughout — no collapse.
+          </div>
+        </div>
+        <div className="logs-section">
+          <div className="logs-section-title">// all training runs</div>
+          <table className="run-hist-table">
+            <thead>
+              <tr><th>run</th><th>steps</th><th>final reward</th><th>final KL</th><th>notes</th></tr>
+            </thead>
+            <tbody>
+              {[
+                ['monitor_v1',  499,  0.5608, 0.0249,  'Early run, Unsloth, low reward',            ''],
+                ['monitor_v2',  200,  1.0000, 0.0195,  'reward=1.0 → reward hacking (overfit)',     'tag-bad'],
+                ['monitor_v3',  400,  1.0000, 0.0108,  'Same issue',                                'tag-bad'],
+                ['monitor_v4',  400,  1.0000, 0.0136,  'Same issue',                                'tag-bad'],
+                ['monitor_v5',  400,  1.0000, 0.0333,  'Same issue',                                'tag-bad'],
+                ['monitor_v6',  400,  1.0000, 0.0366,  'Same issue',                                'tag-bad'],
+                ['monitor_v7',  200,  1.0000, 0.0367,  'Same issue',                                'tag-bad'],
+                ['monitor_v8',  400,  0.7991, 0.0551,  'First real learning signal, no overfit',    'tag-ok'],
+                ['monitor_v9',  800,  0.8190, 0.2189,  'Longer run, KL starting to rise',           ''],
+                ['monitor_v10', 100,  0.5909, 61205,   'KL explosion — Unsloth bug',                'tag-crash'],
+                ['monitor_v11', 300,  0.4909, 0.0088,  'Reward too low, config issue',              ''],
+                ['monitor_v12', 149,  0.8231, 0.1449,  'Crashed at step 160 (env 404)',             ''],
+                ['monitor_colab',150, 0.2712, 97.597,  'KL explosion on Colab',                    'tag-crash'],
+                ['cotrain_v1',  100,  0.1531, 0.0002,  'Co-training, too short',                    ''],
+                ['cotrain_v2',  300,  0.7960, 0.2431,  '✅ Best run — F1=0.970',                    'tag-ok'],
+              ].map(([run,steps,reward,kl,note,tag])=>
+                React.createElement('tr',{key:run,className:run==='cotrain_v2'?'best-run':''},
+                  React.createElement('td',null,run),
+                  React.createElement('td',null,steps),
+                  React.createElement('td',null,reward.toFixed(4)),
+                  React.createElement('td',null,typeof kl==='number'&&kl>100?kl.toFixed(0):kl.toFixed(4)),
+                  React.createElement('td',null,
+                    tag ? React.createElement('span',{className:tag},note) : note
+                  )
+                )
+              )}
+            </tbody>
+          </table>
+          <div className="log-note">
+            <strong>v2–v7 reward=1.0</strong> is not good — the model collapsed to always outputting one verdict and gaming the reward.
+            Fixed by adjusting beta and the exploit sampling ratio. &nbsp;·&nbsp;
+            <strong>v10 / colab</strong> KL explosions caused by Unsloth hidden-state bug. Fixed by switching to standard HF + PEFT.
           </div>
         </div>
       </div>
